@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "test:generation": "tsx scripts/test-generation.ts"
+    "lint": "eslint"
   },
   "dependencies": {
     "cloudinary": "^2.5.1",

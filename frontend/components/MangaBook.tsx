@@ -7,16 +7,16 @@ interface MangaBookProps {
   coverImage?: string;
   title?: string;
   description?: string;
-  firstPageContent?: string;
-  firstPageImage?: string;
+  leftPageImage?: string;
+  rightPageImage?: string;
 }
 
 export default function MangaBook({
   coverImage,
   title = "My Manga Journal",
   description = "Click to open",
-  firstPageContent = "This is your first page of manga!",
-  firstPageImage,
+  leftPageImage,
+  rightPageImage,
 }: MangaBookProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -32,7 +32,6 @@ export default function MangaBook({
         className={`${styles["manga-book"]} ${isOpen ? styles.open : ""}`}
         onClick={handleBookClick}
       >
-        {/* Book Cover */}
         <div className={styles["book-cover"]}>
           <div className={styles["book-spine"]}></div>
           <div
@@ -56,23 +55,14 @@ export default function MangaBook({
           </div>
         </div>
 
-        {/* First Page (revealed when opened) */}
         <div className={styles["book-pages"]}>
           <div className={`${styles.page} ${styles["page-left"]}`}>
             <div className={styles["page-content"]}>
               <div className={styles["page-inner-border"]}>
-                <h2 className={styles["page-title"]}>Chapter 1</h2>
-                <div className={styles["page-text"]}>{firstPageContent}</div>
-              </div>
-            </div>
-          </div>
-          <div className={`${styles.page} ${styles["page-right"]}`}>
-            <div className={styles["page-content"]}>
-              <div className={styles["page-inner-border"]}>
-                {firstPageImage ? (
+                {leftPageImage ? (
                   <img
-                    src={firstPageImage}
-                    alt="First page"
+                    src={leftPageImage}
+                    alt="Left page"
                     className={styles["page-manga-image"]}
                   />
                 ) : (
@@ -82,6 +72,28 @@ export default function MangaBook({
                         Welcome to your manga journal!
                       </div>
                       <div className={styles["character-placeholder"]}>🎭</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className={`${styles.page} ${styles["page-right"]}`}>
+            <div className={styles["page-content"]}>
+              <div className={styles["page-inner-border"]}>
+                {rightPageImage ? (
+                  <img
+                    src={rightPageImage}
+                    alt="Right page"
+                    className={styles["page-manga-image"]}
+                  />
+                ) : (
+                  <div className={styles["manga-placeholder"]}>
+                    <div className={styles["manga-panel"]}>
+                      <div className={styles["speech-bubble"]}>
+                        Your daily story begins here!
+                      </div>
+                      <div className={styles["character-placeholder"]}>📖</div>
                     </div>
                   </div>
                 )}
