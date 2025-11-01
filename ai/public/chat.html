@@ -629,11 +629,19 @@
             .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
             .join('\n\n');
 
-          const summaryPrompt = `Please provide a concise summary of the following conversation. Focus on the main topics discussed, key questions asked, and important answers provided. Keep it brief (around 100-150 words):
+          const summaryPrompt = `Please provide a comprehensive conclusion summarizing the user's situation, concerns, feelings, and the key points discussed in the conversation. Focus on understanding the user's complete situation - what they're experiencing, their challenges, the insights gained, and the overall context. Write this as a conclusive statement that wraps up the entire conversation. Keep it concise (around 100-150 words). 
 
+CRITICAL REQUIREMENTS:
+- Write ONLY statements and conclusions
+- DO NOT include any questions (no question marks)
+- DO NOT ask "what", "which", "how", "why", "when", "where", "who", "would", "could", "should", "can", "will", "do", "did", "does", "are", "is", "was", "were" in question form
+- End with a conclusive statement, NOT a question
+- Focus on concluding the user's situation
+
+Conversation:
 ${conversationText}
 
-Summary:`;
+Conclusive Summary (statements only, no questions):`;
 
           const response = await fetch('http://localhost:3001/api/chat', {
             method: 'POST',
@@ -649,8 +657,20 @@ Summary:`;
           const data = await response.json();
           
           if (data.success) {
-            // Use humanized response if available, otherwise use regular response
-            return data.humanizedResponse || data.response || 'Unable to generate summary';
+            // Use regular response (not humanized, which might have questions)
+            let summary = data.response || data.humanizedResponse || 'Unable to generate summary';
+            
+            // Aggressively remove any questions (clean up)
+            // Remove any sentence ending with "?"
+            summary = summary.replace(/[^.!]*\?[^.!]*/g, '').trim();
+            // Remove trailing question patterns
+            summary = summary.replace(/\s+(what|which|how|why|when|where|who|would|could|should|can|will|do|did|does|are|is|was|were)\s+[^.!?]*\?/gi, '').trim();
+            // Remove any remaining question marks
+            summary = summary.replace(/\?/g, '.').trim();
+            // Clean up multiple spaces
+            summary = summary.replace(/\s+/g, ' ').trim();
+            
+            return summary;
           } else {
             throw new Error(data.error || 'Failed to generate summary');
           }

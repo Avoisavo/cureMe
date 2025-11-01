@@ -196,7 +196,7 @@ User's Question: "${initialPrompt}"
 Initial Responses:
 ${responsesText}
 
-Please analyze all these responses, identify the best points from each, address any disagreements, and provide a single comprehensive final answer that synthesizes the best insights from all models. Be concise but thorough. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.`;
+Please analyze all these responses, identify the best points from each, address any disagreements, and provide a single comprehensive final answer that synthesizes the best insights from all models. Be concise - maximum 100 words. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.`;
 
   console.log('💬 Step 2: Models discussing and reaching consensus...');
 
@@ -214,7 +214,7 @@ Please analyze all these responses, identify the best points from each, address 
 
   // Step 4: Generate humanized version - simplified prompt for speed
   console.log('❤️ Step 3: Creating humanized version...');
-  const humanizePrompt = `Rewrite this answer in a warm, heartfelt manner using simple words (~150 words, flowing paragraphs, no colons or dashes). IMPORTANT: End with a caring question that invites the user to share more:
+  const humanizePrompt = `Rewrite this answer in a warm, heartfelt manner using simple words (maximum 100 words, flowing paragraphs, no colons or dashes). IMPORTANT: End with a caring question that invites the user to share more:
 
 "${finalAnswer}"`;
 
@@ -310,18 +310,18 @@ export async function generateFirstMessageResponses(
   };
 
   // Original response prompt - direct answer
-  const originalPrompt = `Answer the following question clearly and comprehensively in around 200 words. Use flowing paragraphs, not bullet points. Do not use colons (:) or dashes (--, —). Write naturally. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.
+  const originalPrompt = `Answer the following question clearly and comprehensively in around 100 words. Use flowing paragraphs, not bullet points. Do not use colons (:) or dashes (--, —). Write naturally. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.
 
 ${initialPrompt}`;
 
   // Generate only the original response
   const originalResponse = await getFastResponse(originalPrompt);
 
-  // Hardcoded Response 1 (Rational)
-  const rationalResponse = `I'll approach this with a clear, analytical perspective focusing on facts and structured reasoning. Let me break this down systematically to help you understand the key aspects and implications. We'll examine the evidence, consider multiple perspectives, and identify the most logical pathways forward based on available information and established principles. This analytical approach will help you make informed decisions and understand the underlying patterns. What specific aspects of this topic would you like to explore in more depth?`;
+  // Hardcoded Response 1 (Rational) - 100 words or less
+  const rationalResponse = `I'll approach this analytically, focusing on facts and structured reasoning. I'll break this down systematically, examining evidence and multiple perspectives to identify logical pathways. This approach helps you make informed decisions and understand underlying patterns. What specific aspects would you like to explore in more depth?`;
 
-  // Hardcoded Response 2 (Emotional)
-  const emotionalResponse = `I hear you, and I want you to know that your feelings and thoughts matter deeply. Whatever you're experiencing, it's valid, and you're not alone in this. I'm here to offer support and understanding, to help you navigate through whatever challenges or questions you're facing. Together, we can work through this with compassion and care. Your wellbeing is important, and I want to help you feel supported and understood. How are you feeling about this right now? What would be most helpful for you to share?`;
+  // Hardcoded Response 2 (Emotional) - 100 words or less
+  const emotionalResponse = `I hear you, and your feelings matter deeply. Whatever you're experiencing is valid, and you're not alone. I'm here to offer support and understanding, to help you navigate through challenges with compassion and care. Your wellbeing is important. How are you feeling about this right now? What would be most helpful for you to share?`;
 
   // Clean up original response
   const cleanResponse = (response: string | null): string => {
@@ -413,7 +413,7 @@ STYLE GUIDELINES:
 - Be objective and balanced
 - Use clear, precise language
 - Organize information logically
-- Be concise but thorough - around 200-250 words
+- Be concise - maximum 100 words
 - Write in essay form with flowing paragraphs
 - DO NOT mention any AI models or sources
 - DO NOT use colons (:) or dashes (--, —)
@@ -436,7 +436,7 @@ STYLE GUIDELINES:
 - Be encouraging and hopeful
 - Use simple, heartfelt words
 - Show genuine care and concern
-- Be concise but meaningful - around 80-100 words
+- Be concise - maximum 100 words
 - Write in essay form with flowing paragraphs
 - DO NOT mention any AI models or sources
 - DO NOT use colons (:) or dashes (--, —)
