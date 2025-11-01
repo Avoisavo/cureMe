@@ -266,7 +266,7 @@ export default function Bookshelf() {
           intersect.object instanceof THREE.Mesh &&
           intersect.object.userData.isInteractive
         ) {
-          router.push("/");
+          router.push("/manga");
           return;
         }
       }

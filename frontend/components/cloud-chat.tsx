@@ -576,9 +576,9 @@ Conclusive Summary (statements only, no questions):`;
       <div className="messages-container">
         {messages.length === 0 && !isLoading && (
           <div className="empty-state">
-            <div className="empty-state-icon">🐱</div>
-            <h2>Meow! How can I help?</h2>
-            <p>Tell me what's on your mind...</p>
+            <div className="empty-state-icon">💬</div>
+            <h2>How can I help you today?</h2>
+            <p>Start a conversation by typing a message below</p>
           </div>
         )}
 
@@ -635,24 +635,33 @@ Conclusive Summary (statements only, no questions):`;
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Type your meow-ssage here... 🐾"
+          placeholder="Type your message here..."
           disabled={isLoading || pendingStyleSelection}
           style={{
             width: '100%',
             minHeight: '80px',
-            maxHeight: '150px',
-            padding: '12px 14px',
-            border: '2px solid rgba(139, 92, 246, 0.3)',
-            borderRadius: '16px',
+            maxHeight: '200px',
+            padding: '12px 16px',
+            border: '1px solid #d1d5db',
+            borderRadius: '12px',
             fontSize: '14px',
             resize: 'none',
-            background: 'rgba(255, 255, 255, 0.9)',
-            color: '#6366f1',
+            background: '#ffffff',
+            color: '#1f2937',
             fontWeight: '400',
-            boxShadow: '0 4px 12px rgba(139, 92, 246, 0.15)',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             outline: 'none',
-            transition: 'all 0.3s ease',
+            transition: 'all 0.2s ease',
             fontFamily: 'inherit',
+            lineHeight: '1.5',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = '#8b5cf6';
+            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.1)';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = '#d1d5db';
+            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
           }}
         />
       </div>
@@ -662,22 +671,35 @@ Conclusive Summary (statements only, no questions):`;
         disabled={!input.trim() || isLoading || pendingStyleSelection}
         style={{
           width: '100%',
-          padding: '14px',
+          padding: '12px 20px',
           background: input.trim() && !isLoading && !pendingStyleSelection 
             ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
-            : '#d1d5db',
-          color: '#fbbf24',
-          border: '2px solid rgba(251, 191, 36, 0.3)',
-          borderRadius: '20px',
+            : '#e5e7eb',
+          color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
+          border: 'none',
+          borderRadius: '12px',
           cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
-          fontSize: '15px',
-          fontWeight: '700',
-          letterSpacing: '0.5px',
-          boxShadow: '0 6px 20px rgba(139, 92, 246, 0.5)',
-          transition: 'all 0.3s ease',
+          fontSize: '14px',
+          fontWeight: '600',
+          boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
+            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+            : 'none',
+          transition: 'all 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          if (input.trim() && !isLoading && !pendingStyleSelection) {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
+            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+            : 'none';
         }}
       >
-        {isLoading ? 'Sending...' : 'Send Meow-ssage 🐾'}
+        {isLoading ? 'Sending...' : 'Send Message'}
       </button>
     </>
   );
