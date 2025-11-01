@@ -1,11 +1,14 @@
 'use client'
 
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useLoader } from '@react-three/fiber'
 import { OrbitControls, PerspectiveCamera, useTexture } from '@react-three/drei'
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js'
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js'
+import { useEffect } from 'react'
 import * as THREE from 'three'
 
 function LeftWall() {
-  const wallTexture = useTexture('/livingroom_texturRes/wall_paper.png')
+  const wallTexture = useTexture('/wall_tile/wall_paper.png')
   
   // Set texture repeat for tiling effect
   wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
@@ -16,34 +19,38 @@ function LeftWall() {
       <boxGeometry args={[10, 5, 0.5]} />
       <meshStandardMaterial 
         map={wallTexture}
-        roughness={0.8}
+        roughness={0.5}
         metalness={0.1}
+        emissive="#ffffff"
+        emissiveIntensity={0.2}
       />
     </mesh>
   )
 }
 
 function Floor() {
-  const tileTexture = useTexture('/livingroom_texturRes/tile.png')
+  const tileTexture = useTexture('/wall_tile/tile.png')
   
   // Set texture repeat for tiling effect
   tileTexture.wrapS = tileTexture.wrapT = THREE.RepeatWrapping
   tileTexture.repeat.set(4, 4)
   
   return (
-    <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <planeGeometry args={[10, 10]} />
+    <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
+      <boxGeometry args={[10, 0.5, 10]} />
       <meshStandardMaterial 
         map={tileTexture}
-        roughness={0.9}
+        roughness={0.7}
         metalness={0.1}
+        emissive="#442200"
+        emissiveIntensity={0.3}
       />
     </mesh>
   )
 }
 
 function BackWall() {
-  const wallTexture = useTexture('/livingroom_texturRes/wall_paper.png')
+  const wallTexture = useTexture('/wall_tile/wall_paper.png')
   
   // Set texture repeat for tiling effect
   wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
@@ -54,10 +61,60 @@ function BackWall() {
       <boxGeometry args={[10, 5, 0.5]} />
       <meshStandardMaterial 
         map={wallTexture}
-        roughness={0.8}
+        roughness={0.5}
         metalness={0.1}
+        emissive="#ffffff"
+        emissiveIntensity={0.2}
       />
     </mesh>
+  )
+}
+
+function Curtains() {
+  const materials = useLoader(MTLLoader, '/livingroomtecture/curtains.mtl')
+  const obj = useLoader(OBJLoader, '/livingroomtecture/curtains.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[0, 0, -4.5]} 
+      scale={1.2}
+      rotation={[0, Math.PI / 2, 0]}
+    />
+  )
+}
+
+function Window() {
+  const materials = useLoader(MTLLoader, '/livingroomtecture/window.mtl')
+  const obj = useLoader(OBJLoader, '/livingroomtecture/window.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  const clonedObj = obj.clone()
+  
+  useEffect(() => {
+    // Make the window glass transparent
+    clonedObj.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        // Make the material transparent
+        child.material.transparent = true
+        child.material.opacity = 0.3
+        child.material.side = THREE.DoubleSide
+      }
+    })
+  }, [clonedObj])
+  
+  return (
+    <primitive 
+      object={clonedObj} 
+      position={[-0.1, 1.1, -4.7]} 
+      scale={0.8}
+      rotation={[0, Math.PI / 2, 0]}
+    />
   )
 }
 
@@ -94,7 +151,7 @@ export default function LivingRoom() {
           enableDamping
           dampingFactor={0.05}
           minDistance={5}
-          maxDistance={20}
+          maxDistance={35}
         />
         
         <Lights />
@@ -105,6 +162,12 @@ export default function LivingRoom() {
         {/* Additional room elements */}
         <BackWall />
         <Floor />
+        
+        {/* Curtains on back wall */}
+        <Curtains />
+        
+        {/* Window on back wall */}
+        <Window />
       </Canvas>
     </div>
   )
