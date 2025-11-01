@@ -6,22 +6,26 @@ import ChatPanelWrapper from '@/components/chat-panel';
 import Instruction from '@/components/instruction';
 import Cloud from '@/components/cloud';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Catroom() {
   const [showInstruction, setShowInstruction] = useState(true);
   const [showCloud, setShowCloud] = useState(false);
+  const router = useRouter();
 
-  // Listen for "2" key press
+  // Listen for "2" and "3" key press
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === '2') {
         setShowCloud(true);
+      } else if (e.key === '3') {
+        router.push('/bookshelf');
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
+  }, [router]);
 
   return (
     <>
