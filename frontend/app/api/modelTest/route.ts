@@ -6,27 +6,27 @@ interface ModelConfig {
   model: string;
 }
 
-// Configuration for different AI models
+// Configuration for different AI models - all routed through Phala API
 const MODEL_CONFIGS: Record<string, ModelConfig> = {
   'openai': {
     name: 'OpenAI GPT-4',
-    endpoint: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-4'
+    endpoint: 'https://api.redpill.ai/v1/chat/completions',
+    model: 'openai/gpt-4'
   },
   'llama-8b': {
     name: 'DeepSeek',
-    endpoint: 'https://api.deepseek.com/v1/chat/completions',
-    model: 'deepseek-chat'
+    endpoint: 'https://api.redpill.ai/v1/chat/completions',
+    model: 'deepseek/deepseek-chat'
   },
   'llama-70b': {
-    name: 'Llama 70B',
-    endpoint: 'https://api.together.xyz/v1/chat/completions',
-    model: 'meta-llama/Llama-2-70b-chat-hf'
+    name: 'Llama 70B (via GPT-OSS)',
+    endpoint: 'https://api.redpill.ai/v1/chat/completions',
+    model: 'openai/gpt-oss-20b' // Using GPT-OSS as Llama model not available on Phala
   },
   'qwen': {
-    name: 'Qwen 32B',
-    endpoint: 'https://api.together.xyz/v1/chat/completions',
-    model: 'Qwen/Qwen2-72B-Instruct'
+    name: 'Qwen (via GPT-OSS)',
+    endpoint: 'https://api.redpill.ai/v1/chat/completions',
+    model: 'openai/gpt-oss-20b' // Using GPT-OSS as Qwen model not available on Phala
   }
 };
 
@@ -96,24 +96,11 @@ export async function POST(request: NextRequest) {
 async function callModel(modelKey: string, prompt: string): Promise<string> {
   const config = MODEL_CONFIGS[modelKey];
   
-  // Get API key based on model
-  let apiKey: string | undefined;
-  
-  switch (modelKey) {
-    case 'openai':
-      apiKey = process.env.OPENAI_API_KEY;
-      break;
-    case 'llama-8b':
-      apiKey = process.env.DEEPSEEK_API_KEY;
-      break;
-    case 'llama-70b':
-    case 'qwen':
-      apiKey = process.env.TOGETHER_API_KEY;
-      break;
-  }
+  // All models now use Phala API key
+  const apiKey = process.env.PHALA_API_KEY || process.env.PHALA_AI_API_KEY;
 
   if (!apiKey) {
-    throw new Error(`API key not configured for ${config.name}. Please add the appropriate API key to .env.local`);
+    throw new Error(`PHALA_API_KEY not configured. Please add PHALA_API_KEY to .env.local`);
   }
 
   try {
@@ -155,8 +142,8 @@ async function handleAllModelsDiscussion(prompt: string): Promise<{
   error?: string;
 }> {
   try {
-    // Step 1: Get initial responses from all models in parallel
-    const modelKeys = Object.keys(MODEL_CONFIGS);
+    // Step 1: Get initial responses from all models in parallel (excluding llama-70b)
+    const modelKeys = Object.keys(MODEL_CONFIGS).filter(key => key !== 'llama-70b');
     const initialPromises = modelKeys.map(async (key) => {
       try {
         const response = await callModel(key, prompt);
@@ -209,26 +196,37 @@ Keep your synthesis clear, concise, and informative.`;
       }
     }
 
-    // Step 3: Create a humanized version
-    const humanizePrompt = `Take this technical AI synthesis and rewrite it in a warm, conversational, and human-friendly way. Make it feel like advice from a knowledgeable friend:
+    // Step 3: Create a humanized version (100 words max, paragraph form, heartfelt)
+    const humanizePrompt = `Take this technical AI synthesis and rewrite it as a heartfelt, warm paragraph with smooth, flowing sentences. Make it feel like genuine advice from a caring friend:
 
 ${finalResponse}
 
-Rewrite this to be:
-- Warm and approachable
-- Easy to understand
-- Conversational in tone
-- Empathetic and supportive
-- Free of technical jargon
+Rewrite this as a single, smooth paragraph that:
+- Flows naturally with connected, heartfelt sentences
+- Speaks from the heart with genuine warmth and empathy
+- Uses smooth transitions between ideas
+- Is written in paragraph form (not bullet points or list)
+- Feels personal and deeply caring
+- Removes all technical jargon
+- Is EXACTLY 100 words or less (count your words carefully)
 
-Humanized version:`;
+Write a heartfelt, smooth paragraph (100 words max):`;
 
     let humanizedResponse: string;
     try {
       humanizedResponse = await callModel('openai', humanizePrompt);
+      
+      // Ensure response is exactly 100 words or less
+      const words = humanizedResponse.trim().split(/\s+/);
+      if (words.length > 100) {
+        humanizedResponse = words.slice(0, 100).join(' ') + '.';
+      }
     } catch (error) {
-      // If humanization fails, use the original synthesis
-      humanizedResponse = finalResponse;
+      // If humanization fails, use the original synthesis (also limit to 100 words)
+      const words = finalResponse.trim().split(/\s+/);
+      humanizedResponse = words.length > 100 
+        ? words.slice(0, 100).join(' ') + '.' 
+        : finalResponse;
     }
 
     return {
