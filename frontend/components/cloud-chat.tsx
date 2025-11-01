@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { getUserData, UserData } from '@/app/utils/userData/auth';
 
-interface Message {
+export interface Message {
   id: number;
   role: 'user' | 'assistant' | 'pending-selection';
   content?: string;
-  originalResponse?: string;
   rationalResponse?: string;
   emotionalResponse?: string;
   timestamp: string;
@@ -14,16 +15,28 @@ interface Message {
 
 interface CloudChatProps {
   onClose?: () => void;
+  onMessagesUpdate?: (messages: Message[]) => void;
 }
 
-export default function CloudChat({ onClose }: CloudChatProps) {
+export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [preferredStyle, setPreferredStyle] = useState<'rational' | 'emotional' | null>(null);
   const [pendingStyleSelection, setPendingStyleSelection] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const user = getUserData();
+    setUserData(user);
+  }, []);
+
+  // Count user messages to determine AI avatar
+  const getUserMessageCount = () => {
+    return messages.filter(msg => msg.role === 'user').length;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,6 +48,12 @@ export default function CloudChat({ onClose }: CloudChatProps) {
     }, 100);
     return () => clearTimeout(timer);
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (onMessagesUpdate) {
+      onMessagesUpdate(messages);
+    }
+  }, [messages, onMessagesUpdate]);
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
@@ -63,31 +82,22 @@ export default function CloudChat({ onClose }: CloudChatProps) {
     setIsLoading(true);
 
     try {
-      const isFirstMessage = messages.length === 0;
-      const requestBody: any = {
-        prompt: userMessage.content,
-      };
+      // Send all messages (conversation history) to the API
+      const conversationMessages = [...messages, userMessage]
+        .filter(msg => msg.role !== 'pending-selection')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      if (isFirstMessage) {
-        requestBody.isFirstMessage = true;
-      } else if (preferredStyle) {
-        requestBody.preferredStyle = preferredStyle;
-        requestBody.conversationHistory = messages
-          .filter(msg => msg.role !== 'pending-selection')
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          }));
-      } else {
-        requestBody.model = 'all';
-      }
-
-      const response = await fetch('http://localhost:3002/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          messages: conversationMessages
+        }),
       });
 
       if (!response.ok) {
@@ -110,7 +120,6 @@ export default function CloudChat({ onClose }: CloudChatProps) {
           const styleSelectionMessage: Message = {
             id: Date.now() + 1,
             role: 'pending-selection',
-            originalResponse: data.originalResponse,
             rationalResponse: data.rationalResponse,
             emotionalResponse: data.emotionalResponse,
             timestamp: new Date().toISOString(),
@@ -174,47 +183,29 @@ export default function CloudChat({ onClose }: CloudChatProps) {
 
   const generateSummary = async (conversationMessages: Message[]): Promise<string> => {
     try {
-      const conversationText = conversationMessages
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-        .join('\n\n');
+      // Send conversation to API for summary generation
+      const messagesToSummarize = conversationMessages
+        .filter(msg => msg.role !== 'pending-selection')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      const summaryPrompt = `Please provide a comprehensive conclusion summarizing the user's situation, concerns, feelings, and the key points discussed in the conversation. Focus on understanding the user's complete situation - what they're experiencing, their challenges, the insights gained, and the overall context. Write this as a conclusive statement that wraps up the entire conversation. Keep it concise (around 100-150 words). 
-
-CRITICAL REQUIREMENTS:
-- Write ONLY statements and conclusions
-- DO NOT include any questions (no question marks)
-- DO NOT ask "what", "which", "how", "why", "when", "where", "who", "would", "could", "should", "can", "will", "do", "did", "does", "are", "is", "was", "were" in question form
-- End with a conclusive statement, NOT a question
-- Focus on concluding the user's situation
-
-Conversation:
-${conversationText}
-
-Conclusive Summary (statements only, no questions):`;
-
-      const response = await fetch('http://localhost:3002/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: summaryPrompt,
-          model: 'all',
+          messages: messagesToSummarize,
+          action: 'generate_summary'
         }),
       });
 
       const data = await response.json();
       
       if (data.success) {
-        let summary = data.response || data.humanizedResponse || 'Unable to generate summary';
-        
-        // Remove any questions
-        summary = summary.replace(/[^.!]*\?[^.!]*/g, '').trim();
-        summary = summary.replace(/\s+(what|which|how|why|when|where|who|would|could|should|can|will|do|did|does|are|is|was|were)\s+[^.!?]*\?/gi, '').trim();
-        summary = summary.replace(/\?/g, '.').trim();
-        summary = summary.replace(/\s+/g, ' ').trim();
-        
-        return summary;
+        return data.response || 'Unable to generate summary';
       } else {
         throw new Error(data.error || 'Failed to generate summary');
       }
@@ -257,20 +248,11 @@ Conclusive Summary (statements only, no questions):`;
       setMessages([summaryMessage]);
       setIsLoading(false);
       
-      // Save chat history
+      // Save chat history (optional - implement if needed)
       try {
-        await fetch('http://localhost:3002/api/save-chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messages: conversationToSummarize,
-            summary: conversationSummary,
-            dateTime: now.toISOString(),
-          }),
-        });
-        console.log('Chat history saved successfully');
+        // TODO: Implement chat history saving if needed
+        // await fetch('/api/save-chat', { ... });
+        console.log('Chat history ready to be saved');
       } catch (saveError) {
         console.error('Error saving chat history:', saveError);
       }
@@ -291,65 +273,91 @@ Conclusive Summary (statements only, no questions):`;
   };
 
   const renderMessage = (message: Message) => {
-    if (message.role === 'pending-selection') {
-      return (
-        <div key={message.id} className="message-assistant">
-          <div className="avatar avatar-assistant">AI</div>
-          <div style={{ maxWidth: '85%', width: '100%' }}>
-            {message.originalResponse && (
-              <div style={{ marginBottom: '24px' }}>
-                <div className="message-content" style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-                  {message.originalResponse.split('**').map((part, i) => 
-                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div style={{ marginBottom: '12px', color: '#565869', fontSize: '13px', fontWeight: '500' }}>
-              Choose your preferred talking style:
+      if (message.role === 'pending-selection') {
+        return (
+          <div key={message.id} style={{ width: '100%', marginBottom: '20px' }}>
+            <div style={{ 
+              color: '#565869', 
+              fontSize: '13px', 
+              fontWeight: '600',
+              textAlign: 'center',
+              marginBottom: '16px'
+            }}>
+              Choose a response:
             </div>
-            <div className="style-selection-container">
-              <div className="style-response-card">
-                <div className="style-badge rational">🧠 Rational</div>
-                <div className="style-header">
-                  <span>Response 1</span>
+            
+            {/* Side by Side Response Container */}
+            <div className="response-selection-container">
+              {/* Response 1 - Left Side */}
+              <div className="response-column">
+                <div className="response-label-header">Response 1</div>
+                <div className="message-assistant style-response-bubble-left" onClick={() => selectStyle('rational')}>
+                  <div className="avatar avatar-assistant">
+                    <Image
+                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+                      alt="AI Assistant"
+                      width={40}
+                      height={40}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
+                    {message.rationalResponse && message.rationalResponse.split('**').map((part, i) => 
+                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                    )}
+                  </div>
                 </div>
-                <div className="style-content">
-                  {message.rationalResponse}
-                </div>
-                <button 
-                  className="select-style-button"
-                  onClick={() => selectStyle('rational')}
-                >
-                  Choose This Style
-                </button>
               </div>
-              <div className="style-response-card">
-                <div className="style-badge emotional">❤️ Emotional</div>
-                <div className="style-header">
-                  <span>Response 2</span>
+
+              {/* Response 2 - Right Side */}
+              <div className="response-column">
+                <div className="response-label-header">Response 2</div>
+                <div className="message-assistant style-response-bubble-right" onClick={() => selectStyle('emotional')}>
+                  <div className="avatar avatar-assistant">
+                    <Image
+                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+                      alt="AI Assistant"
+                      width={40}
+                      height={40}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
+                    {message.emotionalResponse && message.emotionalResponse.split('**').map((part, i) => 
+                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                    )}
+                  </div>
                 </div>
-                <div className="style-content">
-                  {message.emotionalResponse}
-                </div>
-                <button 
-                  className="select-style-button"
-                  onClick={() => selectStyle('emotional')}
-                >
-                  Choose This Style
-                </button>
               </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        );
+      }
     
     return (
       <div key={message.id} className={`message-${message.role}`}>
         {message.role === 'assistant' && (
-          <div className="avatar avatar-assistant">AI</div>
+          <div className="avatar avatar-assistant">
+            <Image
+              src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+              alt="AI Assistant"
+              width={40}
+              height={40}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
+          </div>
         )}
         <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
           {message.content && message.content.split('**').map((part, i) => 
@@ -357,7 +365,23 @@ Conclusive Summary (statements only, no questions):`;
           )}
         </div>
         {message.role === 'user' && (
-          <div className="avatar avatar-user">U</div>
+          <div className="avatar avatar-user">
+            {userData?.picture ? (
+              <Image
+                src={userData.picture}
+                alt={userData.name || 'User'}
+                width={40}
+                height={40}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              'U'
+            )}
+          </div>
         )}
       </div>
     );
@@ -457,82 +481,65 @@ Conclusive Summary (statements only, no questions):`;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        .style-selection-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin: 12px 0;
-        }
-
-        .style-response-card {
-          border: 2px solid #e5e5e6;
-          border-radius: 10px;
-          padding: 14px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.3s;
-          position: relative;
-        }
-
-        .style-response-card:hover {
-          border-color: #10a37f;
-          box-shadow: 0 4px 12px rgba(16, 163, 127, 0.15);
-        }
-
-        .style-header {
+        /* Side by Side Response Selection */
+        .response-selection-container {
           display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-bottom: 10px;
-          font-weight: 600;
-          font-size: 14px;
-          color: #202123;
-        }
-
-        .style-content {
-          color: #353740;
-          line-height: 1.5;
-          font-size: 12px;
-          white-space: pre-wrap;
-          margin-bottom: 10px;
-        }
-
-        .select-style-button {
+          gap: 20px;
           width: 100%;
-          padding: 8px;
-          background: #10a37f;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.2s;
+          align-items: flex-start;
         }
 
-        .select-style-button:hover {
-          background: #0d8f6e;
+        .response-column {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
 
-        .style-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          padding: 3px 6px;
-          border-radius: 4px;
-          font-size: 10px;
-          font-weight: 600;
+        .response-label-header {
+          font-size: 13px;
+          font-weight: 700;
+          color: #6366f1;
           text-transform: uppercase;
+          letter-spacing: 1px;
+          text-align: center;
+          padding: 10px 16px;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+          border-radius: 12px;
+          border: 2px solid rgba(99, 102, 241, 0.3);
+          font-family: 'Courier New', monospace;
         }
 
-        .style-badge.rational {
-          background: #e3f2fd;
-          color: #1976d2;
+        .style-response-bubble-left,
+        .style-response-bubble-right {
+          margin-bottom: 0;
+          transition: all 0.3s ease;
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
         }
 
-        .style-badge.emotional {
-          background: #fce4ec;
-          color: #c2185b;
+        .style-response-bubble-left:hover,
+        .style-response-bubble-right:hover {
+          transform: scale(1.02);
+        }
+
+        .style-response-bubble-left:hover .message-content,
+        .style-response-bubble-right:hover .message-content {
+          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+          border-color: #818cf8;
+        }
+
+        .style-response-bubble-left .message-content,
+        .style-response-bubble-right .message-content {
+          border: 2px solid transparent;
+          transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+          .response-selection-container {
+            flex-direction: column;
+          }
         }
 
         .loading-dots {
@@ -565,12 +572,6 @@ Conclusive Summary (statements only, no questions):`;
             transform: scale(1);
           }
         }
-
-        @media (max-width: 768px) {
-          .style-selection-container {
-            grid-template-columns: 1fr;
-          }
-        }
       `}</style>
 
       <div className="messages-container">
@@ -601,33 +602,6 @@ Conclusive Summary (statements only, no questions):`;
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      {messages.length > 0 && (
-        <button
-          onClick={endChat}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            marginBottom: '12px',
-            transition: 'all 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#dc2626';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#ef4444';
-          }}
-        >
-          End Chat & Get Summary
-        </button>
-      )}
 
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <textarea
@@ -666,41 +640,84 @@ Conclusive Summary (statements only, no questions):`;
         />
       </div>
 
-      <button
-        onClick={sendMessage}
-        disabled={!input.trim() || isLoading || pendingStyleSelection}
-        style={{
-          width: '100%',
-          padding: '12px 20px',
-          background: input.trim() && !isLoading && !pendingStyleSelection 
-            ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
-            : '#e5e7eb',
-          color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
-          border: 'none',
-          borderRadius: '12px',
-          cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
-          fontSize: '14px',
-          fontWeight: '600',
-          boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
-            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-            : 'none',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          if (input.trim() && !isLoading && !pendingStyleSelection) {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
-            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-            : 'none';
-        }}
-      >
-        {isLoading ? 'Sending...' : 'Send Message'}
-      </button>
+      {/* Two Buttons Side by Side */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        width: '100%',
+      }}>
+        {/* End Chat Button - Only show if there are messages */}
+        {messages.length > 0 && (
+          <button
+            onClick={endChat}
+            disabled={isLoading || pendingStyleSelection}
+            style={{
+              flex: '1',
+              padding: '12px 20px',
+              background: isLoading || pendingStyleSelection ? '#e5e7eb' : '#ef4444',
+              color: isLoading || pendingStyleSelection ? '#9ca3af' : 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isLoading || pendingStyleSelection ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isLoading || pendingStyleSelection ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading && !pendingStyleSelection) {
+                e.currentTarget.style.background = '#dc2626';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading && !pendingStyleSelection) {
+                e.currentTarget.style.background = '#ef4444';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+              }
+            }}
+          >
+            End Chat & Get Summary
+          </button>
+        )}
+
+        {/* Send Message Button */}
+        <button
+          onClick={sendMessage}
+          disabled={!input.trim() || isLoading || pendingStyleSelection}
+          style={{
+            flex: messages.length > 0 ? '1' : '1',
+            padding: '12px 20px',
+            background: input.trim() && !isLoading && !pendingStyleSelection 
+              ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
+              : '#e5e7eb',
+            color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
+              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+              : 'none',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (input.trim() && !isLoading && !pendingStyleSelection) {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
+              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+              : 'none';
+          }}
+        >
+          {isLoading ? 'Sending...' : 'Send Message'}
+        </button>
+      </div>
     </>
   );
 }

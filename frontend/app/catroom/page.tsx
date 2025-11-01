@@ -73,13 +73,17 @@ export default function Catroom() {
     }
   };
 
-  // Listen for "2" and "3" key press
+  // Listen for "1", "2", "3" and "4" key press
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "2") {
+      if (e.key === "1") {
+        router.push("/chatme");
+      } else if (e.key === "2") {
         setShowCloud(true);
       } else if (e.key === "3") {
         setShowBookshelf(true);
+      } else if (e.key === "4") {
+        router.push("/chatme");
       } else if (e.key === "Escape") {
         // ESC key closes any open modal
         if (showManga) {
