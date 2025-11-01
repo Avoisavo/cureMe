@@ -18,6 +18,7 @@ export default function Catroom() {
   const [showManga, setShowManga] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [bookOpened, setBookOpened] = useState(false);
+  const [isDayMode, setIsDayMode] = useState(false);
   const router = useRouter();
 
   // Page data
@@ -110,24 +111,380 @@ export default function Catroom() {
 
   return (
     <>
+      <style jsx>{`
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.3;
+            transform: scale(0.8);
+          }
+        }
+
+        .moon {
+          position: absolute;
+          top: 10%;
+          right: 15%;
+          width: 100px;
+          height: 100px;
+          background: #f4f4f4;
+          border-radius: 50%;
+          box-shadow: 0 0 60px rgba(255, 255, 255, 0.8),
+                      0 0 100px rgba(255, 255, 255, 0.4);
+          z-index: 0;
+        }
+
+        .moon::before {
+          content: '';
+          position: absolute;
+          top: 15px;
+          right: 15px;
+          width: 70px;
+          height: 70px;
+          background: rgba(200, 200, 200, 0.3);
+          border-radius: 50%;
+        }
+
+        .moon::after {
+          content: '';
+          position: absolute;
+          top: 40px;
+          right: 30px;
+          width: 20px;
+          height: 20px;
+          background: rgba(200, 200, 200, 0.4);
+          border-radius: 50%;
+        }
+
+        .sun {
+          position: absolute;
+          top: 10%;
+          right: 15%;
+          width: 120px;
+          height: 120px;
+          background: radial-gradient(circle, #FFD700, #FFA500);
+          border-radius: 50%;
+          box-shadow: 0 0 60px rgba(255, 215, 0, 0.8),
+                      0 0 100px rgba(255, 165, 0, 0.6),
+                      0 0 140px rgba(255, 215, 0, 0.4);
+          z-index: 0;
+          animation: rotateSun 60s linear infinite;
+        }
+
+        @keyframes rotateSun {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .sun::before,
+        .sun::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 150%;
+          height: 150%;
+          border-radius: 50%;
+          background: transparent;
+          border: 3px solid rgba(255, 215, 0, 0.3);
+          transform: translate(-50%, -50%);
+          animation: pulse 3s ease-in-out infinite;
+        }
+
+        .sun::after {
+          width: 180%;
+          height: 180%;
+          border: 2px solid rgba(255, 215, 0, 0.2);
+          animation-delay: 1.5s;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 0.5;
+          }
+          50% {
+            transform: translate(-50%, -50%) scale(1.1);
+            opacity: 0.8;
+          }
+        }
+
+        @keyframes shootingStar {
+          0% {
+            transform: translateX(0) translateY(0) rotate(-45deg);
+            opacity: 0;
+          }
+          5% {
+            opacity: 1;
+          }
+          70% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateX(-600px) translateY(600px) rotate(-45deg);
+            opacity: 0;
+          }
+        }
+
+        .shooting-star {
+          position: absolute;
+          width: 2px;
+          height: 2px;
+          background: white;
+          border-radius: 50%;
+          box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8);
+          z-index: 0;
+          opacity: 0;
+        }
+
+        .shooting-star::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          height: 2px;
+          width: 80px;
+          background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+          border-radius: 50%;
+        }
+
+        /* Each shooting star appears one at a time with gaps between them */
+        .shooting-star1 {
+          top: 15%;
+          right: 10%;
+          animation: shootingStar 2.5s ease-in;
+          animation-delay: 3s;
+          animation-iteration-count: infinite;
+          animation-timing-function: cubic-bezier(0.5, 0, 1, 1);
+        }
+
+        .shooting-star2 {
+          top: 25%;
+          right: 40%;
+          animation: shootingStar 2.8s ease-in;
+          animation-delay: 10s;
+          animation-iteration-count: infinite;
+          animation-timing-function: cubic-bezier(0.5, 0, 1, 1);
+        }
+
+        .shooting-star3 {
+          top: 12%;
+          right: 65%;
+          animation: shootingStar 2.6s ease-in;
+          animation-delay: 17s;
+          animation-iteration-count: infinite;
+          animation-timing-function: cubic-bezier(0.5, 0, 1, 1);
+        }
+
+        .star {
+          position: absolute;
+          background: white;
+          border-radius: 50%;
+          z-index: 0;
+          animation: twinkle 3s ease-in-out infinite;
+        }
+
+        .star1 {
+          width: 3px;
+          height: 3px;
+          top: 15%;
+          left: 10%;
+          animation-delay: 0s;
+        }
+
+        .star2 {
+          width: 2px;
+          height: 2px;
+          top: 25%;
+          left: 25%;
+          animation-delay: 0.5s;
+        }
+
+        .star3 {
+          width: 4px;
+          height: 4px;
+          top: 18%;
+          left: 45%;
+          animation-delay: 1s;
+        }
+
+        .star4 {
+          width: 3px;
+          height: 3px;
+          top: 30%;
+          left: 60%;
+          animation-delay: 1.5s;
+        }
+
+        .star5 {
+          width: 2px;
+          height: 2px;
+          top: 12%;
+          left: 75%;
+          animation-delay: 2s;
+        }
+
+        .star6 {
+          width: 3px;
+          height: 3px;
+          top: 35%;
+          left: 15%;
+          animation-delay: 2.5s;
+        }
+
+        .star7 {
+          width: 4px;
+          height: 4px;
+          top: 40%;
+          left: 35%;
+          animation-delay: 0.3s;
+        }
+
+        .star8 {
+          width: 2px;
+          height: 2px;
+          top: 22%;
+          left: 85%;
+          animation-delay: 1.8s;
+        }
+
+        .star9 {
+          width: 3px;
+          height: 3px;
+          top: 45%;
+          left: 55%;
+          animation-delay: 0.7s;
+        }
+
+        .star10 {
+          width: 2px;
+          height: 2px;
+          top: 38%;
+          left: 70%;
+          animation-delay: 1.2s;
+        }
+
+        .star11 {
+          width: 4px;
+          height: 4px;
+          top: 8%;
+          left: 30%;
+          animation-delay: 2.2s;
+        }
+
+        .star12 {
+          width: 3px;
+          height: 3px;
+          top: 50%;
+          left: 20%;
+          animation-delay: 0.9s;
+        }
+      `}</style>
       <Header />
-      <ChatPanelWrapper>
-        <Spline scene="/scene.splinecode" />
-      </ChatPanelWrapper>
+      
+      {/* Day/Night Toggle Button */}
+      <button
+        onClick={() => setIsDayMode(!isDayMode)}
+        style={{
+          position: "fixed",
+          top: "80px",
+          right: "20px",
+          width: "60px",
+          height: "60px",
+          borderRadius: "50%",
+          border: "3px solid rgba(255, 255, 255, 0.3)",
+          background: isDayMode 
+            ? "linear-gradient(135deg, #FFD700, #FFA500)" 
+            : "linear-gradient(135deg, #1a1a2e, #0a0e27)",
+          cursor: "pointer",
+          zIndex: 1000,
+          boxShadow: isDayMode
+            ? "0 0 20px rgba(255, 215, 0, 0.6)"
+            : "0 0 20px rgba(255, 255, 255, 0.3)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "28px",
+          transition: "all 0.3s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "scale(1.1)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+      >
+        {isDayMode ? "☀️" : "🌙"}
+      </button>
+
+      <div
+        style={{
+          position: "relative",
+          top: "50px",
+          width: "100%",
+          height: "100vh",
+          background: isDayMode 
+            ? "linear-gradient(to bottom, #87CEEB, #E0F6FF, #FFFFFF)"
+            : "linear-gradient(to bottom, #0a0e27, #1a1a2e, #16213e)",
+          overflow: "hidden",
+          transition: "background 0.5s ease",
+        }}
+      >
+        {/* Day Mode - Sun */}
+        {isDayMode && <div className="sun"></div>}
+
+        {/* Night Mode - Moon, Shooting Stars, and Twinkling Stars */}
+        {!isDayMode && (
+          <>
+            {/* Moon */}
+            <div className="moon"></div>
+
+            {/* Shooting stars */}
+            <div className="shooting-star shooting-star1"></div>
+            <div className="shooting-star shooting-star2"></div>
+            <div className="shooting-star shooting-star3"></div>
+
+            {/* Twinkling stars */}
+            <div className="star star1"></div>
+            <div className="star star2"></div>
+            <div className="star star3"></div>
+            <div className="star star4"></div>
+            <div className="star star5"></div>
+            <div className="star star6"></div>
+            <div className="star star7"></div>
+            <div className="star star8"></div>
+            <div className="star star9"></div>
+            <div className="star star10"></div>
+            <div className="star star11"></div>
+            <div className="star star12"></div>
+          </>
+        )}
+
+        <div style={{ position: "relative", zIndex: 1, marginTop: "80px" }}>
+          <Spline scene="/scene-2.splinecode" />
+        </div>
+      </div>
       {showInstruction && (
         <Instruction onClose={() => setShowInstruction(false)} />
       )}
       {showCloud && (
-        <Cloud
+        <Cloud 
           onClose={() => setShowCloud(false)}
+          left="45%"  // Move to the left (lower % = more left)
           // ===== HOW TO ADJUST CLOUD POSITION =====
           // Uncomment and modify these props to change position:
-
+          
           // top="20%"        // Distance from top (default: 20%)
           // bottom="auto"    // Distance from bottom (default: auto)
           // left="50%"       // Distance from left (default: 50% - centered)
           // right="auto"     // Distance from right (default: auto)
-
+          
           // EXAMPLES:
           // Top-left corner:     top="10%" left="10%"
           // Top-right corner:    top="10%" right="10%" left="auto"
