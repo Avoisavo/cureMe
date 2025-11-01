@@ -36,7 +36,7 @@ export default function ModelTest() {
     setResponse(null);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api/modelTest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

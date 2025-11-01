@@ -10,6 +10,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { messages, action } = body;
 
+    // Validate messages
+    if (!messages || !Array.isArray(messages)) {
+      console.error('Invalid request: messages is missing or not an array');
+      return NextResponse.json(
+        { success: false, error: 'Invalid request: messages array is required' },
+        { status: 400 }
+      );
+    }
+
     // Get API key from environment
     const apiKey = process.env.PHALA_AI_API_KEY;
     
@@ -66,18 +75,13 @@ Conclusive Summary (statements only, no questions):`;
     if (isFirstMessage) {
       const userPrompt = messages[0].content;
 
-      // Get original response
-      const originalResponse = await callPhalaAPI(apiKey, [
-        { role: 'user', content: userPrompt }
-      ]);
-
-      // Get rational response
+      // Get rational response (humanized, logical style)
       const rationalPrompt = `${userPrompt}\n\nPlease respond in a rational, logical, and analytical manner. Focus on facts, reasoning, and practical solutions.`;
       const rationalResponse = await callPhalaAPI(apiKey, [
         { role: 'user', content: rationalPrompt }
       ]);
 
-      // Get emotional response
+      // Get emotional response (humanized, empathetic style)
       const emotionalPrompt = `${userPrompt}\n\nPlease respond in a warm, empathetic, and emotionally supportive manner. Focus on feelings, understanding, and emotional comfort.`;
       const emotionalResponse = await callPhalaAPI(apiKey, [
         { role: 'user', content: emotionalPrompt }
@@ -86,7 +90,6 @@ Conclusive Summary (statements only, no questions):`;
       return NextResponse.json({
         success: true,
         isFirstMessage: true,
-        originalResponse,
         rationalResponse,
         emotionalResponse
       });

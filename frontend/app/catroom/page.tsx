@@ -2,7 +2,6 @@
 
 import Spline from '@splinetool/react-spline';
 import Header from '@/components/header';
-import ChatPanelWrapper from '@/components/chat-panel';
 import Instruction from '@/components/instruction';
 import Cloud from '@/components/cloud';
 import { useState, useEffect } from 'react';
@@ -34,11 +33,9 @@ export default function Catroom() {
   return (
     <>
       <Header />
-      <ChatPanelWrapper>
-        <Spline
-          scene="/scene.splinecode" 
-        />
-      </ChatPanelWrapper>
+      <Spline
+        scene="/scene.splinecode" 
+      />
       {showInstruction && (
         <Instruction onClose={() => setShowInstruction(false)} />
       )}

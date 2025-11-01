@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { getUserData, UserData } from '@/app/utils/userData/auth';
 
 export interface Message {
   id: number;
   role: 'user' | 'assistant' | 'pending-selection';
   content?: string;
-  originalResponse?: string;
   rationalResponse?: string;
   emotionalResponse?: string;
   timestamp: string;
@@ -23,8 +24,19 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
   const [isLoading, setIsLoading] = useState(false);
   const [preferredStyle, setPreferredStyle] = useState<'rational' | 'emotional' | null>(null);
   const [pendingStyleSelection, setPendingStyleSelection] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const user = getUserData();
+    setUserData(user);
+  }, []);
+
+  // Count user messages to determine AI avatar
+  const getUserMessageCount = () => {
+    return messages.filter(msg => msg.role === 'user').length;
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -108,7 +120,6 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           const styleSelectionMessage: Message = {
             id: Date.now() + 1,
             role: 'pending-selection',
-            originalResponse: data.originalResponse,
             rationalResponse: data.rationalResponse,
             emotionalResponse: data.emotionalResponse,
             timestamp: new Date().toISOString(),
@@ -262,48 +273,91 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
   };
 
   const renderMessage = (message: Message) => {
-    if (message.role === 'pending-selection') {
-      return (
-        <div key={message.id} style={{ width: '100%' }}>
-          <div style={{ 
-            color: '#565869', 
-            fontSize: '13px', 
-            fontWeight: '500',
-            paddingLeft: '52px',
-            marginBottom: '16px'
-          }}>
-            Choose a response:
-          </div>
-          
-          {/* Response 1 - Rational */}
-          <div className="message-assistant style-response-bubble" onClick={() => selectStyle('rational')}>
-            <div className="avatar avatar-assistant">AI</div>
-            <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer', position: 'relative' }}>
-              <div className="response-label">Response 1</div>
-              {message.rationalResponse && message.rationalResponse.split('**').map((part, i) => 
-                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-              )}
+      if (message.role === 'pending-selection') {
+        return (
+          <div key={message.id} style={{ width: '100%', marginBottom: '20px' }}>
+            <div style={{ 
+              color: '#565869', 
+              fontSize: '13px', 
+              fontWeight: '600',
+              textAlign: 'center',
+              marginBottom: '16px'
+            }}>
+              Choose a response:
             </div>
-          </div>
+            
+            {/* Side by Side Response Container */}
+            <div className="response-selection-container">
+              {/* Response 1 - Left Side */}
+              <div className="response-column">
+                <div className="response-label-header">Response 1</div>
+                <div className="message-assistant style-response-bubble-left" onClick={() => selectStyle('rational')}>
+                  <div className="avatar avatar-assistant">
+                    <Image
+                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+                      alt="AI Assistant"
+                      width={40}
+                      height={40}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
+                    {message.rationalResponse && message.rationalResponse.split('**').map((part, i) => 
+                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                    )}
+                  </div>
+                </div>
+              </div>
 
-          {/* Response 2 - Emotional */}
-          <div className="message-assistant style-response-bubble" onClick={() => selectStyle('emotional')}>
-            <div className="avatar avatar-assistant">AI</div>
-            <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer', position: 'relative' }}>
-              <div className="response-label">Response 2</div>
-              {message.emotionalResponse && message.emotionalResponse.split('**').map((part, i) => 
-                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-              )}
+              {/* Response 2 - Right Side */}
+              <div className="response-column">
+                <div className="response-label-header">Response 2</div>
+                <div className="message-assistant style-response-bubble-right" onClick={() => selectStyle('emotional')}>
+                  <div className="avatar avatar-assistant">
+                    <Image
+                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+                      alt="AI Assistant"
+                      width={40}
+                      height={40}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
+                    {message.emotionalResponse && message.emotionalResponse.split('**').map((part, i) => 
+                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      );
-    }
+        );
+      }
     
     return (
       <div key={message.id} className={`message-${message.role}`}>
         {message.role === 'assistant' && (
-          <div className="avatar avatar-assistant">AI</div>
+          <div className="avatar avatar-assistant">
+            <Image
+              src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
+              alt="AI Assistant"
+              width={40}
+              height={40}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
+          </div>
         )}
         <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
           {message.content && message.content.split('**').map((part, i) => 
@@ -311,7 +365,23 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           )}
         </div>
         {message.role === 'user' && (
-          <div className="avatar avatar-user">U</div>
+          <div className="avatar avatar-user">
+            {userData?.picture ? (
+              <Image
+                src={userData.picture}
+                alt={userData.name || 'User'}
+                width={40}
+                height={40}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              'U'
+            )}
+          </div>
         )}
       </div>
     );
@@ -411,34 +481,65 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        .style-response-bubble {
-          margin-bottom: 12px;
-          transition: all 0.2s ease;
+        /* Side by Side Response Selection */
+        .response-selection-container {
+          display: flex;
+          gap: 20px;
+          width: 100%;
+          align-items: flex-start;
         }
 
-        .style-response-bubble:hover {
-          transform: translateX(4px);
+        .response-column {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
 
-        .style-response-bubble:hover .message-content {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          border-color: #10a37f;
-        }
-
-        .style-response-bubble .message-content {
-          border: 2px solid transparent;
-          transition: all 0.2s ease;
-        }
-
-        .response-label {
-          position: absolute;
-          top: -20px;
-          left: 0;
-          font-size: 11px;
-          font-weight: 600;
-          color: #8e8ea0;
+        .response-label-header {
+          font-size: 13px;
+          font-weight: 700;
+          color: #6366f1;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 1px;
+          text-align: center;
+          padding: 10px 16px;
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+          border-radius: 12px;
+          border: 2px solid rgba(99, 102, 241, 0.3);
+          font-family: 'Courier New', monospace;
+        }
+
+        .style-response-bubble-left,
+        .style-response-bubble-right {
+          margin-bottom: 0;
+          transition: all 0.3s ease;
+          display: flex;
+          gap: 12px;
+          align-items: flex-start;
+        }
+
+        .style-response-bubble-left:hover,
+        .style-response-bubble-right:hover {
+          transform: scale(1.02);
+        }
+
+        .style-response-bubble-left:hover .message-content,
+        .style-response-bubble-right:hover .message-content {
+          box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+          border-color: #818cf8;
+        }
+
+        .style-response-bubble-left .message-content,
+        .style-response-bubble-right .message-content {
+          border: 2px solid transparent;
+          transition: all 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+          .response-selection-container {
+            flex-direction: column;
+          }
         }
 
         .loading-dots {
@@ -502,33 +603,6 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         <div ref={messagesEndRef} />
       </div>
 
-      {messages.length > 0 && (
-        <button
-          onClick={endChat}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: '#ef4444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            marginBottom: '12px',
-            transition: 'all 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#dc2626';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#ef4444';
-          }}
-        >
-          End Chat & Get Summary
-        </button>
-      )}
-
       <div style={{ position: 'relative', marginBottom: '12px' }}>
         <textarea
           ref={textareaRef}
@@ -566,41 +640,84 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         />
       </div>
 
-      <button
-        onClick={sendMessage}
-        disabled={!input.trim() || isLoading || pendingStyleSelection}
-        style={{
-          width: '100%',
-          padding: '12px 20px',
-          background: input.trim() && !isLoading && !pendingStyleSelection 
-            ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
-            : '#e5e7eb',
-          color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
-          border: 'none',
-          borderRadius: '12px',
-          cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
-          fontSize: '14px',
-          fontWeight: '600',
-          boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
-            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-            : 'none',
-          transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          if (input.trim() && !isLoading && !pendingStyleSelection) {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
-            ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-            : 'none';
-        }}
-      >
-        {isLoading ? 'Sending...' : 'Send Message'}
-      </button>
+      {/* Two Buttons Side by Side */}
+      <div style={{
+        display: 'flex',
+        gap: '12px',
+        width: '100%',
+      }}>
+        {/* End Chat Button - Only show if there are messages */}
+        {messages.length > 0 && (
+          <button
+            onClick={endChat}
+            disabled={isLoading || pendingStyleSelection}
+            style={{
+              flex: '1',
+              padding: '12px 20px',
+              background: isLoading || pendingStyleSelection ? '#e5e7eb' : '#ef4444',
+              color: isLoading || pendingStyleSelection ? '#9ca3af' : 'white',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isLoading || pendingStyleSelection ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: isLoading || pendingStyleSelection ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isLoading && !pendingStyleSelection) {
+                e.currentTarget.style.background = '#dc2626';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isLoading && !pendingStyleSelection) {
+                e.currentTarget.style.background = '#ef4444';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+              }
+            }}
+          >
+            End Chat & Get Summary
+          </button>
+        )}
+
+        {/* Send Message Button */}
+        <button
+          onClick={sendMessage}
+          disabled={!input.trim() || isLoading || pendingStyleSelection}
+          style={{
+            flex: messages.length > 0 ? '1' : '1',
+            padding: '12px 20px',
+            background: input.trim() && !isLoading && !pendingStyleSelection 
+              ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
+              : '#e5e7eb',
+            color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
+              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+              : 'none',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            if (input.trim() && !isLoading && !pendingStyleSelection) {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
+              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
+              : 'none';
+          }}
+        >
+          {isLoading ? 'Sending...' : 'Send Message'}
+        </button>
+      </div>
     </>
   );
 }
