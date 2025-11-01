@@ -20,12 +20,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get API key from environment
-    const apiKey = process.env.PHALA_AI_API_KEY;
+    const apiKey = process.env.PHALA_API_KEY || process.env.PHALA_AI_API_KEY;
     
     if (!apiKey) {
-      console.error('PHALA_AI_API_KEY not found in environment variables');
+      console.error('PHALA_API_KEY or PHALA_AI_API_KEY not found in environment variables');
       return NextResponse.json(
-        { success: false, error: 'API key not configured. Please add PHALA_AI_API_KEY to .env.local' },
+        { success: false, error: 'API key not configured. Please add PHALA_API_KEY to .env.local' },
         { status: 500 }
       );
     }

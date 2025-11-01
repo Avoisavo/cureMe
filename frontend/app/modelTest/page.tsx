@@ -134,11 +134,13 @@ export default function ModelTest() {
           background: white;
           font-size: 15px;
           font-weight: 600;
+          color: #000;
         }
 
         .model-option:hover {
           border-color: #667eea;
           background: #f8f9ff;
+          color: #000;
         }
 
         .model-option.active {
@@ -157,6 +159,11 @@ export default function ModelTest() {
           font-family: inherit;
           resize: vertical;
           transition: border-color 0.3s;
+          color: #000;
+        }
+
+        .textarea::placeholder {
+          color: #999;
         }
 
         .textarea:focus {
