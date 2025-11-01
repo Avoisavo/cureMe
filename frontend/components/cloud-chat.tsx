@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
-import { getUserData, UserData } from '@/app/utils/userData/auth';
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { getUserData, UserData } from "@/app/utils/userData/auth";
 
 export interface Message {
   id: number;
-  role: 'user' | 'assistant' | 'pending-selection';
+  role: "user" | "assistant" | "pending-selection";
   content?: string;
   rationalResponse?: string;
   emotionalResponse?: string;
@@ -18,11 +18,16 @@ interface CloudChatProps {
   onMessagesUpdate?: (messages: Message[]) => void;
 }
 
-export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps) {
+export default function CloudChat({
+  onClose,
+  onMessagesUpdate,
+}: CloudChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [preferredStyle, setPreferredStyle] = useState<'rational' | 'emotional' | null>(null);
+  const [preferredStyle, setPreferredStyle] = useState<
+    "rational" | "emotional" | null
+  >(null);
   const [pendingStyleSelection, setPendingStyleSelection] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,11 +40,11 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
 
   // Count user messages to determine AI avatar
   const getUserMessageCount = () => {
-    return messages.filter(msg => msg.role === 'user').length;
+    return messages.filter((msg) => msg.role === "user").length;
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -58,7 +63,7 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
     if (textarea) {
-      textarea.style.height = 'auto';
+      textarea.style.height = "auto";
       textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
     }
   };
@@ -72,31 +77,31 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
 
     const userMessage: Message = {
       id: Date.now(),
-      role: 'user',
+      role: "user",
       content: input.trim(),
       timestamp: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
+    setInput("");
     setIsLoading(true);
 
     try {
       // Send all messages (conversation history) to the API
       const conversationMessages = [...messages, userMessage]
-        .filter(msg => msg.role !== 'pending-selection')
-        .map(msg => ({
+        .filter((msg) => msg.role !== "pending-selection")
+        .map((msg) => ({
           role: msg.role,
           content: msg.content,
         }));
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch("/api/chat", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: conversationMessages
+          messages: conversationMessages,
         }),
       });
 
@@ -106,20 +111,22 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         try {
           errorData = JSON.parse(errorText);
         } catch {
-          errorData = { error: errorText || `Server error: ${response.status}` };
+          errorData = {
+            error: errorText || `Server error: ${response.status}`,
+          };
         }
-        console.error('API Error:', response.status, errorData);
+        console.error("API Error:", response.status, errorData);
         throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
+      console.log("API Response:", data);
 
       if (data.success) {
         if (data.isFirstMessage) {
           const styleSelectionMessage: Message = {
             id: Date.now() + 1,
-            role: 'pending-selection',
+            role: "pending-selection",
             rationalResponse: data.rationalResponse,
             emotionalResponse: data.emotionalResponse,
             timestamp: new Date().toISOString(),
@@ -129,20 +136,22 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         } else {
           const assistantMessage: Message = {
             id: Date.now() + 1,
-            role: 'assistant',
-            content: data.response || 'No response received',
+            role: "assistant",
+            content: data.response || "No response received",
             timestamp: new Date().toISOString(),
           };
           setMessages((prev) => [...prev, assistantMessage]);
         }
       } else {
-        throw new Error(data.error || 'Failed to get response');
+        throw new Error(data.error || "Failed to get response");
       }
     } catch (error: any) {
       const errorMessage: Message = {
         id: Date.now() + 1,
-        role: 'assistant',
-        content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
+        role: "assistant",
+        content: `Error: ${
+          error.message || "Something went wrong. Please try again."
+        }`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -151,22 +160,25 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
     }
   };
 
-  const selectStyle = (style: 'rational' | 'emotional') => {
+  const selectStyle = (style: "rational" | "emotional") => {
     setPreferredStyle(style);
     setPendingStyleSelection(false);
-    
+
     setMessages((prev) => {
       const updated = [...prev];
-      const pendingIndex = updated.findIndex(msg => msg.role === 'pending-selection');
+      const pendingIndex = updated.findIndex(
+        (msg) => msg.role === "pending-selection"
+      );
       if (pendingIndex !== -1) {
-        const selectedResponse = style === 'rational' 
-          ? updated[pendingIndex].rationalResponse 
-          : updated[pendingIndex].emotionalResponse;
-        
+        const selectedResponse =
+          style === "rational"
+            ? updated[pendingIndex].rationalResponse
+            : updated[pendingIndex].emotionalResponse;
+
         updated[pendingIndex] = {
           id: updated[pendingIndex].id,
-          role: 'assistant',
-          content: selectedResponse || 'No response available',
+          role: "assistant",
+          content: selectedResponse || "No response available",
           timestamp: updated[pendingIndex].timestamp,
         };
       }
@@ -175,42 +187,44 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
 
-  const generateSummary = async (conversationMessages: Message[]): Promise<string> => {
+  const generateSummary = async (
+    conversationMessages: Message[]
+  ): Promise<string> => {
     try {
       // Send conversation to API for summary generation
       const messagesToSummarize = conversationMessages
-        .filter(msg => msg.role !== 'pending-selection')
-        .map(msg => ({
+        .filter((msg) => msg.role !== "pending-selection")
+        .map((msg) => ({
           role: msg.role,
           content: msg.content,
         }));
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
+      const response = await fetch("/api/chat", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           messages: messagesToSummarize,
-          action: 'generate_summary'
+          action: "generate_summary",
         }),
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
-        return data.response || 'Unable to generate summary';
+        return data.response || "Unable to generate summary";
       } else {
-        throw new Error(data.error || 'Failed to generate summary');
+        throw new Error(data.error || "Failed to generate summary");
       }
     } catch (error: any) {
-      console.error('Error generating summary:', error);
+      console.error("Error generating summary:", error);
       return `Summary generation failed: ${error.message}`;
     }
   };
@@ -222,41 +236,121 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
 
     const conversationToSummarize = [...messages];
     setMessages([]);
-    setInput('');
+    setInput("");
     setIsLoading(true);
-    
+
     try {
-      const conversationSummary = await generateSummary(conversationToSummarize);
-      
+      const conversationSummary = await generateSummary(
+        conversationToSummarize
+      );
+
       const now = new Date();
-      const dateTime = now.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
+      const date = now.toISOString().split("T")[0]; // YYYY-MM-DD
+      const dateTime = now.toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
       });
-      
+      const sessionId = `session_${Date.now()}_${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+
       const summaryMessage: Message = {
         id: Date.now(),
-        role: 'assistant',
-        content: `📋 **Conversation Summary**\n📅 ${dateTime}\n\n${conversationSummary}`,
-        timestamp: new Date().toISOString(),
+        role: "assistant",
+        content: `📋 **Conversation Summary**\n📅 ${dateTime}\n\n${conversationSummary}\n\n✨ Your memory has been saved and will be available in your collection!`,
+        timestamp: now.toISOString(),
       };
-      
+
       setMessages([summaryMessage]);
       setIsLoading(false);
-      
-      // Save chat history (optional - implement if needed)
+
+      // Save chat history, summary, and generate memory in parallel
       try {
-        // TODO: Implement chat history saving if needed
-        // await fetch('/api/save-chat', { ... });
-        console.log('Chat history ready to be saved');
-      } catch (saveError) {
-        console.error('Error saving chat history:', saveError);
+        const savePromises = [];
+
+        // 1. Save chat session
+        savePromises.push(
+          fetch("/api/chat-sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              messages: conversationToSummarize.filter(
+                (m) => m.role !== "pending-selection"
+              ),
+              userId: userData?.email || "default",
+            }),
+          })
+        );
+
+        // 2. Save AI summary
+        savePromises.push(
+          fetch("/api/chat-summaries", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              summary: conversationSummary,
+              userId: userData?.email || "default",
+            }),
+          })
+        );
+
+        // 3. Generate and save memory
+        savePromises.push(
+          fetch("/api/memories", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId,
+              date,
+              datetime: now.toISOString(),
+              timestamp: dateTime,
+              aiSummary: conversationSummary,
+              chatMessages: conversationToSummarize
+                .filter((m) => m.role !== "pending-selection")
+                .map((m) => ({
+                  role: m.role,
+                  content: m.content,
+                  timestamp: m.timestamp,
+                })),
+              userId: userData?.email || "default",
+              options: {
+                tone: "reflective",
+                panelCount: 4,
+                contentSensitivity: "medium",
+              },
+            }),
+          })
+        );
+
+        // Wait for all saves to complete
+        const results = await Promise.all(savePromises);
+
+        // Check if all saves were successful
+        const allSuccess = await Promise.all(
+          results.map(async (res) => {
+            const data = await res.json();
+            return data.success;
+          })
+        );
+
+        if (allSuccess.every((s) => s)) {
+          console.log(
+            "✅ Chat session, summary, and memory saved successfully"
+          );
+        } else {
+          console.warn("⚠️ Some saves may have failed");
+        }
+      } catch (saveError: any) {
+        console.error("Error in save pipeline:", saveError);
+        // Don't show error to user, just log it
       }
-      
+
       setTimeout(() => scrollToBottom(), 50);
       setTimeout(() => scrollToBottom(), 200);
       setTimeout(() => scrollToBottom(), 500);
@@ -264,7 +358,7 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
       setIsLoading(false);
       const errorMessage: Message = {
         id: Date.now(),
-        role: 'assistant',
+        role: "assistant",
         content: `Error generating summary: ${error.message}`,
         timestamp: new Date().toISOString(),
       };
@@ -273,78 +367,102 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
   };
 
   const renderMessage = (message: Message) => {
-      if (message.role === 'pending-selection') {
-        return (
-          <div key={message.id} style={{ width: '100%', marginBottom: '20px' }}>
-            <div style={{ 
-              color: '#565869', 
-              fontSize: '13px', 
-              fontWeight: '600',
-              textAlign: 'center',
-              marginBottom: '16px'
-            }}>
-              Choose a response:
-            </div>
-            
-            {/* Side by Side Response Container */}
-            <div className="response-selection-container">
-              {/* Response 1 - Left Side */}
-              <div className="response-column">
-                <div className="response-label-header">Response 1</div>
-                <div className="message-assistant style-response-bubble-left" onClick={() => selectStyle('rational')}>
-                  <div className="avatar avatar-assistant">
-                    <Image
-                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
-                      alt="AI Assistant"
-                      width={40}
-                      height={40}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
-                    {message.rationalResponse && message.rationalResponse.split('**').map((part, i) => 
-                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                    )}
-                  </div>
+    if (message.role === "pending-selection") {
+      return (
+        <div key={message.id} style={{ width: "100%", marginBottom: "20px" }}>
+          <div
+            style={{
+              color: "#565869",
+              fontSize: "13px",
+              fontWeight: "600",
+              textAlign: "center",
+              marginBottom: "16px",
+            }}
+          >
+            Choose a response:
+          </div>
+
+          {/* Side by Side Response Container */}
+          <div className="response-selection-container">
+            {/* Response 1 - Left Side */}
+            <div className="response-column">
+              <div className="response-label-header">Response 1</div>
+              <div
+                className="message-assistant style-response-bubble-left"
+                onClick={() => selectStyle("rational")}
+              >
+                <div className="avatar avatar-assistant">
+                  <Image
+                    src={
+                      getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"
+                    }
+                    alt="AI Assistant"
+                    width={40}
+                    height={40}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </div>
+                <div
+                  className="message-content"
+                  style={{ whiteSpace: "pre-wrap", cursor: "pointer" }}
+                >
+                  {message.rationalResponse &&
+                    message.rationalResponse
+                      .split("**")
+                      .map((part, i) =>
+                        i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                      )}
                 </div>
               </div>
+            </div>
 
-              {/* Response 2 - Right Side */}
-              <div className="response-column">
-                <div className="response-label-header">Response 2</div>
-                <div className="message-assistant style-response-bubble-right" onClick={() => selectStyle('emotional')}>
-                  <div className="avatar avatar-assistant">
-                    <Image
-                      src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
-                      alt="AI Assistant"
-                      width={40}
-                      height={40}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
-                  </div>
-                  <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer' }}>
-                    {message.emotionalResponse && message.emotionalResponse.split('**').map((part, i) => 
-                      i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                    )}
-                  </div>
+            {/* Response 2 - Right Side */}
+            <div className="response-column">
+              <div className="response-label-header">Response 2</div>
+              <div
+                className="message-assistant style-response-bubble-right"
+                onClick={() => selectStyle("emotional")}
+              >
+                <div className="avatar avatar-assistant">
+                  <Image
+                    src={
+                      getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"
+                    }
+                    alt="AI Assistant"
+                    width={40}
+                    height={40}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </div>
+                <div
+                  className="message-content"
+                  style={{ whiteSpace: "pre-wrap", cursor: "pointer" }}
+                >
+                  {message.emotionalResponse &&
+                    message.emotionalResponse
+                      .split("**")
+                      .map((part, i) =>
+                        i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+                      )}
                 </div>
               </div>
             </div>
           </div>
-        );
-      }
-    
+        </div>
+      );
+    }
+
     return (
       <div key={message.id} className={`message-${message.role}`}>
-        {message.role === 'assistant' && (
+        {message.role === "assistant" && (
           <div className="avatar avatar-assistant">
             <Image
               src={getUserMessageCount() >= 2 ? "/sadcat.gif" : "/beluga.jpg"}
@@ -352,34 +470,37 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
               width={40}
               height={40}
               style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
               }}
             />
           </div>
         )}
-        <div className="message-content" style={{ whiteSpace: 'pre-wrap' }}>
-          {message.content && message.content.split('**').map((part, i) => 
-            i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-          )}
+        <div className="message-content" style={{ whiteSpace: "pre-wrap" }}>
+          {message.content &&
+            message.content
+              .split("**")
+              .map((part, i) =>
+                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+              )}
         </div>
-        {message.role === 'user' && (
+        {message.role === "user" && (
           <div className="avatar avatar-user">
             {userData?.picture ? (
               <Image
                 src={userData.picture}
-                alt={userData.name || 'User'}
+                alt={userData.name || "User"}
                 width={40}
                 height={40}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
                 }}
               />
             ) : (
-              'U'
+              "U"
             )}
           </div>
         )}
@@ -421,7 +542,8 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           color: #565869;
         }
 
-        .message-user, .message-assistant {
+        .message-user,
+        .message-assistant {
           display: flex;
           gap: 12px;
           align-items: flex-start;
@@ -504,10 +626,14 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           letter-spacing: 1px;
           text-align: center;
           padding: 10px 16px;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+          background: linear-gradient(
+            135deg,
+            rgba(99, 102, 241, 0.1) 0%,
+            rgba(139, 92, 246, 0.1) 100%
+          );
           border-radius: 12px;
           border: 2px solid rgba(99, 102, 241, 0.3);
-          font-family: 'Courier New', monospace;
+          font-family: "Courier New", monospace;
         }
 
         .style-response-bubble-left,
@@ -565,7 +691,9 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         }
 
         @keyframes bounce {
-          0%, 80%, 100% {
+          0%,
+          80%,
+          100% {
             transform: scale(0);
           }
           40% {
@@ -594,7 +722,9 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
                 <div className="loading-dot"></div>
                 <div className="loading-dot"></div>
               </div>
-              <p style={{ marginTop: '8px', fontSize: '12px', color: '#565869' }}>
+              <p
+                style={{ marginTop: "8px", fontSize: "12px", color: "#565869" }}
+              >
                 Good things take a little time, almost there 🌼
               </p>
             </div>
@@ -603,7 +733,7 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ position: 'relative', marginBottom: '12px' }}>
+      <div style={{ position: "relative", marginBottom: "12px" }}>
         <textarea
           ref={textareaRef}
           value={input}
@@ -612,68 +742,78 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           placeholder="Type your message here..."
           disabled={isLoading || pendingStyleSelection}
           style={{
-            width: '100%',
-            minHeight: '80px',
-            maxHeight: '200px',
-            padding: '12px 16px',
-            border: '1px solid #d1d5db',
-            borderRadius: '12px',
-            fontSize: '14px',
-            resize: 'none',
-            background: '#ffffff',
-            color: '#1f2937',
-            fontWeight: '400',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-            outline: 'none',
-            transition: 'all 0.2s ease',
-            fontFamily: 'inherit',
-            lineHeight: '1.5',
+            width: "100%",
+            minHeight: "80px",
+            maxHeight: "200px",
+            padding: "12px 16px",
+            border: "1px solid #d1d5db",
+            borderRadius: "12px",
+            fontSize: "14px",
+            resize: "none",
+            background: "#ffffff",
+            color: "#1f2937",
+            fontWeight: "400",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            outline: "none",
+            transition: "all 0.2s ease",
+            fontFamily: "inherit",
+            lineHeight: "1.5",
           }}
           onFocus={(e) => {
-            e.currentTarget.style.borderColor = '#8b5cf6';
-            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(139, 92, 246, 0.1)';
+            e.currentTarget.style.borderColor = "#8b5cf6";
+            e.currentTarget.style.boxShadow =
+              "0 0 0 3px rgba(139, 92, 246, 0.1)";
           }}
           onBlur={(e) => {
-            e.currentTarget.style.borderColor = '#d1d5db';
-            e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+            e.currentTarget.style.borderColor = "#d1d5db";
+            e.currentTarget.style.boxShadow = "0 1px 3px rgba(0, 0, 0, 0.1)";
           }}
         />
       </div>
 
       {/* Two Buttons Side by Side */}
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        width: '100%',
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "12px",
+          width: "100%",
+        }}
+      >
         {/* End Chat Button - Only show if there are messages */}
         {messages.length > 0 && (
           <button
             onClick={endChat}
             disabled={isLoading || pendingStyleSelection}
             style={{
-              flex: '1',
-              padding: '12px 20px',
-              background: isLoading || pendingStyleSelection ? '#e5e7eb' : '#ef4444',
-              color: isLoading || pendingStyleSelection ? '#9ca3af' : 'white',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: isLoading || pendingStyleSelection ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease',
-              boxShadow: isLoading || pendingStyleSelection ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
+              flex: "1",
+              padding: "12px 20px",
+              background:
+                isLoading || pendingStyleSelection ? "#e5e7eb" : "#ef4444",
+              color: isLoading || pendingStyleSelection ? "#9ca3af" : "white",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: "600",
+              cursor:
+                isLoading || pendingStyleSelection ? "not-allowed" : "pointer",
+              transition: "all 0.2s ease",
+              boxShadow:
+                isLoading || pendingStyleSelection
+                  ? "none"
+                  : "0 2px 8px rgba(239, 68, 68, 0.3)",
             }}
             onMouseEnter={(e) => {
               if (!isLoading && !pendingStyleSelection) {
-                e.currentTarget.style.background = '#dc2626';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                e.currentTarget.style.background = "#dc2626";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 12px rgba(239, 68, 68, 0.4)";
               }
             }}
             onMouseLeave={(e) => {
               if (!isLoading && !pendingStyleSelection) {
-                e.currentTarget.style.background = '#ef4444';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
+                e.currentTarget.style.background = "#ef4444";
+                e.currentTarget.style.boxShadow =
+                  "0 2px 8px rgba(239, 68, 68, 0.3)";
               }
             }}
           >
@@ -686,36 +826,46 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           onClick={sendMessage}
           disabled={!input.trim() || isLoading || pendingStyleSelection}
           style={{
-            flex: messages.length > 0 ? '1' : '1',
-            padding: '12px 20px',
-            background: input.trim() && !isLoading && !pendingStyleSelection 
-              ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)' 
-              : '#e5e7eb',
-            color: input.trim() && !isLoading && !pendingStyleSelection ? '#ffffff' : '#9ca3af',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
-            fontSize: '14px',
-            fontWeight: '600',
-            boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
-              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-              : 'none',
-            transition: 'all 0.2s ease',
+            flex: messages.length > 0 ? "1" : "1",
+            padding: "12px 20px",
+            background:
+              input.trim() && !isLoading && !pendingStyleSelection
+                ? "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)"
+                : "#e5e7eb",
+            color:
+              input.trim() && !isLoading && !pendingStyleSelection
+                ? "#ffffff"
+                : "#9ca3af",
+            border: "none",
+            borderRadius: "12px",
+            cursor:
+              input.trim() && !isLoading && !pendingStyleSelection
+                ? "pointer"
+                : "not-allowed",
+            fontSize: "14px",
+            fontWeight: "600",
+            boxShadow:
+              input.trim() && !isLoading && !pendingStyleSelection
+                ? "0 2px 8px rgba(139, 92, 246, 0.3)"
+                : "none",
+            transition: "all 0.2s ease",
           }}
           onMouseEnter={(e) => {
             if (input.trim() && !isLoading && !pendingStyleSelection) {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.4)';
+              e.currentTarget.style.transform = "translateY(-1px)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 12px rgba(139, 92, 246, 0.4)";
             }
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = input.trim() && !isLoading && !pendingStyleSelection 
-              ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
-              : 'none';
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow =
+              input.trim() && !isLoading && !pendingStyleSelection
+                ? "0 2px 8px rgba(139, 92, 246, 0.3)"
+                : "none";
           }}
         >
-          {isLoading ? 'Sending...' : 'Send Message'}
+          {isLoading ? "Sending..." : "Send Message"}
         </button>
       </div>
     </>
