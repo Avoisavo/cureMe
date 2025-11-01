@@ -80,9 +80,16 @@ interface PageProps {
   opened: boolean;
   imageTexture?: Texture | null;
   textCanvas?: Texture | null;
+  onClick?: () => void;
 }
 
-const Page = ({ number, opened, imageTexture, textCanvas }: PageProps) => {
+const Page = ({
+  number,
+  opened,
+  imageTexture,
+  textCanvas,
+  onClick,
+}: PageProps) => {
   const group = useRef<Group>(null!);
   const skinnedMeshRef = useRef<SkinnedMesh>(null!);
   const turnedAt = useRef(0);
@@ -172,7 +179,26 @@ const Page = ({ number, opened, imageTexture, textCanvas }: PageProps) => {
   });
 
   return (
-    <group ref={group} position-z={-number * PAGE_DEPTH}>
+    <group
+      ref={group}
+      position-z={-number * PAGE_DEPTH}
+      onClick={(e) => {
+        if (!onClick) return;
+        e.stopPropagation();
+        onClick();
+        document.body.style.cursor = "default";
+      }}
+      onPointerOver={() => {
+        if (onClick) {
+          document.body.style.cursor = "pointer";
+        }
+      }}
+      onPointerOut={() => {
+        if (onClick) {
+          document.body.style.cursor = "default";
+        }
+      }}
+    >
       <primitive object={manualSkinnedMesh} ref={skinnedMeshRef} />
     </group>
   );
@@ -182,24 +208,38 @@ interface MangaBook3DProps {
   leftPageImage: string;
   rightPageText: string;
   opened: boolean;
+  onBookClick?: () => void;
+  onLeftPageClick?: () => void;
+  onRightPageClick?: () => void;
 }
 
 export const MangaBook3D = ({
   leftPageImage,
   rightPageText,
   opened,
+  onBookClick,
+  onLeftPageClick,
+  onRightPageClick,
 }: MangaBook3DProps) => {
-  // Load image texture for left page
-  const imageTexture = useTexture(leftPageImage);
+  const groupRef = useRef<Group>(null!);
 
-  // Set color space after texture loads
+  // Load textures
+  const imageTexture = useTexture(leftPageImage);
+  const coverTexture = useTexture("/cover.png");
+
+  // Set color space after textures load
   useEffect(() => {
     if (imageTexture) {
       // eslint-disable-next-line
       imageTexture.colorSpace = SRGBColorSpace;
       imageTexture.needsUpdate = true;
     }
-  }, [imageTexture]);
+    if (coverTexture) {
+      // eslint-disable-next-line
+      coverTexture.colorSpace = SRGBColorSpace;
+      coverTexture.needsUpdate = true;
+    }
+  }, [imageTexture, coverTexture]);
 
   // Create text canvas for right page
   const textCanvas = useMemo(() => {
@@ -215,32 +255,34 @@ export const MangaBook3D = ({
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Add margin and border
+    // Add margin and border - increased left margin to avoid fold
     const margin = 60;
+    const leftMargin = 180; // Larger left margin to avoid the fold area
     ctx.strokeStyle = "#e0e0d8";
     ctx.lineWidth = 2;
     ctx.strokeRect(
+      leftMargin,
       margin,
-      margin,
-      canvas.width - margin * 2,
+      canvas.width - leftMargin - margin,
       canvas.height - margin * 2
     );
 
-    // Title
+    // Title - adjusted for new margins
     ctx.fillStyle = "#2c3e50";
-    ctx.font = "bold 48px 'Press Start 2P', 'Orbitron', 'VT323', monospace";
+    ctx.font = "bold 44px 'Press Start 2P', 'Orbitron', 'VT323', monospace";
     ctx.textAlign = "center";
-    ctx.fillText("AI Summary", canvas.width / 2, 150);
+    const titleX = leftMargin + (canvas.width - leftMargin - margin) / 2;
+    ctx.fillText("AI Summary", titleX, 150);
 
-    // Underline
+    // Underline - adjusted for new margins
     ctx.strokeStyle = "#34495e";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(margin + 100, 180);
-    ctx.lineTo(canvas.width - margin - 100, 180);
+    ctx.moveTo(leftMargin + 80, 180);
+    ctx.lineTo(canvas.width - margin - 80, 180);
     ctx.stroke();
 
-    // Body text
+    // Body text - adjusted for new margins
     ctx.fillStyle = "#333";
     ctx.font = "28px 'Orbitron', 'VT323', monospace";
     ctx.textAlign = "left";
@@ -248,14 +290,14 @@ export const MangaBook3D = ({
     const words = rightPageText.split(" ");
     let line = "";
     let y = 260;
-    const maxWidth = canvas.width - margin * 2 - 40;
+    const maxWidth = canvas.width - leftMargin - margin - 60;
     const lineHeight = 48;
 
     for (let n = 0; n < words.length; n++) {
       const testLine = line + words[n] + " ";
       const metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && n > 0) {
-        ctx.fillText(line.trim(), margin + 20, y);
+        ctx.fillText(line.trim(), leftMargin + 30, y);
         line = words[n] + " ";
         y += lineHeight;
       } else {
@@ -264,7 +306,7 @@ export const MangaBook3D = ({
       if (y > canvas.height - margin - 60) break;
     }
     if (line && y < canvas.height - margin - 60) {
-      ctx.fillText(line.trim(), margin + 20, y);
+      ctx.fillText(line.trim(), leftMargin + 30, y);
     }
 
     const texture = new THREE.CanvasTexture(canvas);
@@ -274,25 +316,57 @@ export const MangaBook3D = ({
 
   return (
     <group
+      ref={groupRef}
       rotation-y={-Math.PI / 2}
       rotation-x={-Math.PI / 8}
       position={[0, 0.5, 0]}
       scale={1.7}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onBookClick) {
+          onBookClick();
+        }
+      }}
+      onPointerOver={() => {
+        if (!opened) {
+          document.body.style.cursor = "pointer";
+        }
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "default";
+      }}
     >
-      {/* Left page - shows image on its back when flipped */}
-      <Page
-        number={0}
-        opened={opened}
-        imageTexture={null}
-        textCanvas={imageTexture}
-      />
-      {/* Right page - shows text on its front */}
-      <Page
-        number={1}
-        opened={false}
-        imageTexture={textCanvas}
-        textCanvas={null}
-      />
+      {/* Cover page - shows when book is closed */}
+      {!opened && (
+        <Page
+          number={0}
+          opened={false}
+          imageTexture={coverTexture}
+          textCanvas={null}
+        />
+      )}
+
+      {/* Content pages - show when book is opened */}
+      {opened && (
+        <>
+          {/* Left page - shows image on its back when flipped */}
+          <Page
+            number={0}
+            opened={opened}
+            imageTexture={null}
+            textCanvas={imageTexture}
+            onClick={onLeftPageClick}
+          />
+          {/* Right page - shows text on its front */}
+          <Page
+            number={1}
+            opened={false}
+            imageTexture={textCanvas}
+            textCanvas={null}
+            onClick={onRightPageClick}
+          />
+        </>
+      )}
     </group>
   );
 };

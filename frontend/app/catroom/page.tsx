@@ -17,16 +17,17 @@ export default function Catroom() {
   const [showBookshelf, setShowBookshelf] = useState(false);
   const [showManga, setShowManga] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [bookOpened, setBookOpened] = useState(false);
   const router = useRouter();
 
   // Page data
   const pages = [
     {
-      image: "/manga-right.png",
+      image: "/first.png",
       text: "This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences.",
     },
     {
-      image: "/manga-left.png",
+      image: "/second.png",
       text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
     },
   ];
@@ -40,6 +41,35 @@ export default function Catroom() {
   const handlePrevPage = () => {
     if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleBookClick = () => {
+    if (!bookOpened) {
+      setCurrentPage(0);
+      setBookOpened(true);
+    }
+  };
+
+  const handleLeftPageClick = () => {
+    if (currentPage === 0) {
+      setBookOpened(false);
+      setCurrentPage(0);
+      return;
+    }
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleRightPageClick = () => {
+    if (currentPage === pages.length - 1) {
+      setBookOpened(false);
+      setCurrentPage(0);
+      return;
+    }
+    if (currentPage < pages.length - 1) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
@@ -65,6 +95,14 @@ export default function Catroom() {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [router, showManga, showBookshelf, showCloud]);
+
+  // Ensure the 3D book starts closed each time the modal opens
+  useEffect(() => {
+    if (showManga) {
+      setBookOpened(false);
+      setCurrentPage(0);
+    }
+  }, [showManga]);
 
   return (
     <>
@@ -173,7 +211,10 @@ export default function Catroom() {
                   <MangaBook3D
                     leftPageImage={pages[currentPage].image}
                     rightPageText={pages[currentPage].text}
-                    opened={true}
+                    opened={bookOpened}
+                    onBookClick={handleBookClick}
+                    onLeftPageClick={handleLeftPageClick}
+                    onRightPageClick={handleRightPageClick}
                   />
                 </group>
               </Suspense>
