@@ -5,11 +5,17 @@ import { OrbitControls, PerspectiveCamera, useTexture } from '@react-three/drei'
 import * as THREE from 'three'
 
 function LeftWall() {
+  const wallTexture = useTexture('/livingroom_texturRes/wall_paper.png')
+  
+  // Set texture repeat for tiling effect
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
+  wallTexture.repeat.set(3, 2)
+  
   return (
     <mesh position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]}>
       <boxGeometry args={[10, 5, 0.5]} />
       <meshStandardMaterial 
-        color="#e8d5c4" 
+        map={wallTexture}
         roughness={0.8}
         metalness={0.1}
       />
@@ -37,11 +43,17 @@ function Floor() {
 }
 
 function BackWall() {
+  const wallTexture = useTexture('/livingroom_texturRes/wall_paper.png')
+  
+  // Set texture repeat for tiling effect
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
+  wallTexture.repeat.set(3, 2)
+  
   return (
     <mesh position={[0, 2.5, -5]} rotation={[0, 0, 0]}>
       <boxGeometry args={[10, 5, 0.5]} />
       <meshStandardMaterial 
-        color="#d4c4b0" 
+        map={wallTexture}
         roughness={0.8}
         metalness={0.1}
       />
@@ -78,7 +90,7 @@ export default function LivingRoom() {
       <Canvas shadows>
         <PerspectiveCamera makeDefault position={[15, 3, 15]} />
         <OrbitControls 
-          target={[-3, 3.5, -3]}
+          target={[-3, 2.5, -4]}
           enableDamping
           dampingFactor={0.05}
           minDistance={5}
