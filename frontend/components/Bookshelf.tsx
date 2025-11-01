@@ -4,16 +4,23 @@ import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as THREE from "three";
 
-export default function Bookshelf() {
+interface BookshelfProps {
+  onClose?: () => void;
+  onMangaClick?: () => void;
+}
+
+export default function Bookshelf({ onClose, onMangaClick }: BookshelfProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const container = containerRef.current;
+
     // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xffffff); // Pure white background
+    scene.background = null;
 
     // Orthographic Camera for flat, illustration-like view
     const aspect = window.innerWidth / window.innerHeight;
@@ -29,25 +36,27 @@ export default function Bookshelf() {
     camera.position.set(0, 1.2, 5);
     camera.lookAt(0, 1.2, 0);
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Renderer with alpha enabled for transparency
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    containerRef.current.appendChild(renderer.domElement);
+    renderer.setClearColor(0x000000, 0); // Transparent background
+    renderer.domElement.style.pointerEvents = "auto"; // Ensure canvas receives pointer events
+    container.appendChild(renderer.domElement);
 
-    // Lighting - brighter for clearer colors
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    // Lighting - much brighter for vibrant colors
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
     directionalLight.position.set(5, 10, 7);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
     scene.add(directionalLight);
 
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.6);
     fillLight.position.set(-5, 5, -5);
     scene.add(fillLight);
 
@@ -61,7 +70,6 @@ export default function Bookshelf() {
     // Shelf dimensions
     const shelfWidth = 3.3; // Shortened shelf
     const shelfDepth = 1.5;
-    const shelfThickness = 0.1;
     const shelfHeight = 0.2; // Make shelves thicker/more prominent
     const numShelves = 2; // Only 2 rows
     const verticalSpacing = 1.5;
@@ -81,23 +89,17 @@ export default function Bookshelf() {
       scene.add(shelf);
     }
 
-    // Book colors - matching reference image palette
+    // Book colors
     const bookColors = [
-      0xd77a61, // Coral Red
-      0xe8b45e, // Golden Yellow
-      0xf4c953, // Bright Yellow
-      0x5c8a94, // Teal Blue-Gray
-      0x708b92, // Blue Gray
-      0xf2f2f2, // Off-White
+      0xaaa799, // sage green
+      0xc0d6ed, //pastel blue
+      0x75a8df, // Bright Yellow
+      0xaeb463, // olive
+      0xb1d8b7, // teal green
       0x4a4947, // Dark Charcoal
-      0x5f5854, // Dark Brown
-      0xe67e5c, // Orange Coral
-      0xd4895e, // Light Brown
-      0x84a8ae, // Light Teal
-      0xebb563, // Orange Yellow
-      0xa0896d, // Tan
-      0x6b8e95, // Dusty Teal
-      0xc16b4f, // Rust
+      0x82a4e3,
+      0xa2c4e0,
+      0x52688f, // Light Brown
     ];
 
     // Function to create a book
@@ -112,8 +114,10 @@ export default function Bookshelf() {
       const bookGeometry = new THREE.BoxGeometry(width, height, depth);
       const bookMaterial = new THREE.MeshStandardMaterial({
         color: color,
-        roughness: 0.9,
+        roughness: 0.6,
         metalness: 0.0,
+        emissive: color,
+        emissiveIntensity: 0.3, // Add slight glow to make colors pop
       });
 
       const book = new THREE.Mesh(bookGeometry, bookMaterial);
@@ -121,6 +125,17 @@ export default function Bookshelf() {
       book.rotation.y = rotation;
       book.castShadow = true;
       book.receiveShadow = true;
+
+      // Add border/edges to make books more defined
+      const edgesGeometry = new THREE.EdgesGeometry(bookGeometry);
+      const edgesMaterial = new THREE.LineBasicMaterial({
+        color: 0x000000, // Black borders
+        linewidth: 1,
+        opacity: 0.4,
+        transparent: true,
+      });
+      const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+      book.add(edges);
 
       // Add spine detail
       const spineGeometry = new THREE.BoxGeometry(
@@ -192,7 +207,8 @@ export default function Bookshelf() {
     // Add special interactive book on the bottom right
     const interactiveBookWidth = 0.2;
     const interactiveBookHeight = 1.0;
-    const interactiveBookColor = 0xe67e5c; // Orange Coral - stands out
+
+    const interactiveBookColor = 0x0e86d4;
     const bottomShelfY = shelfHeight;
     const interactiveBookPosition = new THREE.Vector3(
       shelfWidth / 2 - 0.3,
@@ -222,7 +238,7 @@ export default function Bookshelf() {
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(scene.children);
+      const intersects = raycaster.intersectObjects(scene.children, true); // Check children recursively
 
       // Reset all books
       scene.children.forEach((child) => {
@@ -232,17 +248,26 @@ export default function Bookshelf() {
         }
       });
 
-      // Check if hovering over interactive book
+      // Check if hovering over interactive book (check parent too)
       for (const intersect of intersects) {
-        if (
-          intersect.object instanceof THREE.Mesh &&
-          intersect.object.userData.isInteractive
+        const obj = intersect.object;
+        let targetBook = null;
+
+        // Find the interactive book (either the object itself or its parent)
+        if (obj instanceof THREE.Mesh && obj.userData.isInteractive) {
+          targetBook = obj;
+        } else if (
+          obj.parent instanceof THREE.Mesh &&
+          obj.parent.userData.isInteractive
         ) {
+          targetBook = obj.parent;
+        }
+
+        if (targetBook) {
           // Much more obvious pop-out effect
-          intersect.object.position.z =
-            intersect.object.userData.originalZ + 0.8;
+          targetBook.position.z = targetBook.userData.originalZ + 0.8;
           // Add slight upward movement for extra emphasis
-          intersect.object.position.y =
+          targetBook.position.y =
             bottomShelfY + interactiveBookHeight / 2 + 0.13;
           document.body.style.cursor = "pointer";
           renderer.render(scene, camera);
@@ -253,27 +278,66 @@ export default function Bookshelf() {
       renderer.render(scene, camera);
     };
 
-    // Click handler to navigate to manga book page
+    // Click handler to navigate to manga book page or close on empty space
     const handleClick = (event: MouseEvent) => {
+      // Prevent default behavior
+      event.preventDefault();
+      event.stopPropagation();
+
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(scene.children);
+      const intersects = raycaster.intersectObjects(scene.children, true); // Check children recursively
 
+      console.log("Click detected, intersects:", intersects.length);
+
+      // Check if clicked on interactive book (check parent too since edges might be hit)
       for (const intersect of intersects) {
-        if (
-          intersect.object instanceof THREE.Mesh &&
-          intersect.object.userData.isInteractive
-        ) {
-          router.push("/manga");
-          return;
+        const obj: THREE.Object3D = intersect.object;
+
+        console.log(
+          "Clicked object:",
+          obj.type,
+          "userData:",
+          obj.userData,
+          "parent userData:",
+          obj.parent?.userData
+        );
+
+        // Walk up the parent chain to find an interactive book
+        let current: THREE.Object3D | null = obj;
+        while (current) {
+          if (current.userData && current.userData.isInteractive) {
+            console.log("Interactive book clicked! Opening manga...");
+            if (onMangaClick) {
+              onMangaClick();
+            } else {
+              router.push("/manga");
+            }
+            return;
+          }
+          current = current.parent;
         }
+      }
+
+      console.log("No interactive book clicked");
+      // If clicked on empty space (no intersections with books/shelves) and onClose exists, close the bookshelf
+      if (intersects.length === 0 && onClose) {
+        onClose();
       }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("click", handleClick);
+    // ESC key to close
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && onClose) {
+        onClose();
+      }
+    };
+
+    renderer.domElement.addEventListener("mousemove", handleMouseMove);
+    renderer.domElement.addEventListener("click", handleClick);
+    window.addEventListener("keydown", handleKeyPress);
 
     // Handle window resize
     const handleResize = () => {
@@ -295,21 +359,83 @@ export default function Bookshelf() {
 
     // Cleanup
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("click", handleClick);
+      renderer.domElement.removeEventListener("mousemove", handleMouseMove);
+      renderer.domElement.removeEventListener("click", handleClick);
+      window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("resize", handleResize);
       document.body.style.cursor = "default";
-      if (containerRef.current) {
-        containerRef.current.removeChild(renderer.domElement);
+      if (container && renderer.domElement) {
+        container.removeChild(renderer.domElement);
       }
       renderer.dispose();
     };
-  }, [router]);
+  }, [router, onClose, onMangaClick]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
-    />
+    <>
+      <div
+        ref={containerRef}
+        style={{
+          width: "100vw",
+          height: "100vh",
+          overflow: "hidden",
+          position: "relative",
+          pointerEvents: "auto",
+        }}
+      />
+      {onClose && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            width: "44px",
+            height: "44px",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            border: "2px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: "50%",
+            cursor: "pointer",
+            fontSize: "20px",
+            fontWeight: "400",
+            zIndex: 10000,
+            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
+            transition: "all 0.2s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#333",
+            pointerEvents: "auto",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+            e.currentTarget.style.transform = "scale(1.1) rotate(90deg)";
+            e.currentTarget.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.2)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.9)";
+            e.currentTarget.style.transform = "scale(1) rotate(0deg)";
+            e.currentTarget.style.boxShadow = "0 2px 12px rgba(0, 0, 0, 0.15)";
+          }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+    </>
   );
 }
