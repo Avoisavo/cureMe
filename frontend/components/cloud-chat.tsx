@@ -82,7 +82,7 @@ export default function CloudChat({ onClose }: CloudChatProps) {
         requestBody.model = 'all';
       }
 
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const response = await fetch('http://localhost:3002/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,7 +192,7 @@ ${conversationText}
 
 Conclusive Summary (statements only, no questions):`;
 
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const response = await fetch('http://localhost:3002/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -259,7 +259,7 @@ Conclusive Summary (statements only, no questions):`;
       
       // Save chat history
       try {
-        await fetch('http://localhost:3001/api/save-chat', {
+        await fetch('http://localhost:3002/api/save-chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

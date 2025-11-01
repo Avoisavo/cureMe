@@ -36,7 +36,7 @@ export default function ModelTest() {
     setResponse(null);
 
     try {
-      const res = await fetch('http://localhost:3001/api/chat', {
+      const res = await fetch('http://localhost:3002/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

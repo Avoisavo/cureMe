@@ -9,7 +9,7 @@ import path from 'path';
 import { chatWithOpenAI, chatWithLlama, chatWithQwen, chatWithGPTOSS, discussWithAllModels, generateFirstMessageResponses, generateStyledResponse } from './index';
 
 const app = express();
-const PORT = 3001; // Changed to 3001 to avoid conflict with Next.js frontend on 3000
+const PORT = 3002; // Changed to 3002 to avoid conflict with Next.js frontend on 3001
 
 app.use(cors());
 app.use(express.json());
