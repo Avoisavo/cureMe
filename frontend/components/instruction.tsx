@@ -49,7 +49,7 @@ export default function Instruction({ onClose }: InstructionProps) {
         }`}
       >
         <div 
-          className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-pink-200/50 p-8 overflow-hidden"
+          className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-pink-200/50 p-4 overflow-hidden"
           style={{ fontFamily: "'Press Start 2P', 'Orbitron', 'VT323', 'Audiowide', monospace, cursive" }}
         >
           {/* Decorative background elements */}
@@ -82,7 +82,7 @@ export default function Instruction({ onClose }: InstructionProps) {
           <div className="relative z-10">
             {/* Title */}
             <h2 className="text-3xl font-bold text-center text-pink-600 mb-6 mt-4" style={{ letterSpacing: '0.1em', lineHeight: '1.6' }}>
-              Hi There! 😊
+              Hi There!
             </h2>
 
             {/* Cute Kitty Image */}

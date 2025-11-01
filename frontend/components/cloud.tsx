@@ -13,7 +13,7 @@ interface CloudProps {
 
 export default function Cloud({ 
   onClose, 
-  top = '55%',      // Default: 20% from top
+  top = '57%',      // Default: 20% from top
   bottom = 'auto',  // Default: auto
   left = '65%',     // Default: 50% from left (centered)
   right = 'auto'    // Default: auto
