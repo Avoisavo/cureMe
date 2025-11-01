@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MangaBook from "@/components/MangaBook";
 import Spline from "@splinetool/react-spline";
 
 export default function MangaPage() {
   const router = useRouter();
-  const [showManga, setShowManga] = useState(true);
   const [splineLoaded, setSplineLoaded] = useState(false);
 
   const handleClose = () => {
     router.back();
   };
+
+  // Add ESC key handler
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        router.back();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscKey);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscKey);
+    };
+  }, [router]);
 
   return (
     <main
@@ -57,24 +71,22 @@ export default function MangaPage() {
       />
 
       {/* Manga book on top */}
-      {showManga && (
-        <div
-          style={{
-            position: "relative",
-            zIndex: 2,
-            width: "100%",
-            height: "100%",
-          }}
-        >
-          <MangaBook
-            coverImage="/cover.png"
-            title="My Daily Manga Journal"
-            description="2025 Edition"
-            leftPageImage="/manga-left.png"
-            rightPageImage="/manga-right.png"
-          />
-        </div>
-      )}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 2,
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <MangaBook
+          coverImage="/cover.png"
+          title="My Daily Manga Journal"
+          description="2025 Edition"
+          leftPageImage="/manga-right.png"
+          rightPageText="This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences."
+        />
+      </div>
 
       {/* Close button */}
       <button

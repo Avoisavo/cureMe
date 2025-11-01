@@ -10,8 +10,8 @@
 }
 
 .manga-book {
-  --book-width: 300px;
-  --book-height: 400px;
+  --book-width: 345px;
+  --book-height: 460px;
   --book-scale: 1;
   --book-translateY: 0px;
   --book-rotateY: 0deg;
@@ -335,10 +335,41 @@
 }
 
 .page-manga-image {
-  max-width: 150%;
-  max-height: 150%;
+  max-width: 130%;
+  max-height: 130%;
   object-fit: contain;
   object-position: center;
+}
+
+/* Journal Text Content */
+.journal-text-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+}
+
+.journal-text-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #34495e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.journal-text-body {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #333;
+  text-align: justify;
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 5px;
 }
 
 /* Navigation Controls */
@@ -360,25 +391,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.close-book-btn {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-}
-
-.close-book-btn:hover {
-  background: #c0392b;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
 }
 
 .page-controls {
@@ -443,7 +455,7 @@
 /* Responsive Design */
 @media (max-width: 1000px) {
   .manga-book {
-    --book-width: min(300px, 45vw);
+    --book-width: min(345px, 45vw);
     --book-height: calc(var(--book-width) * 4 / 3);
     --open-scale: 1.2;
   }
@@ -451,7 +463,7 @@
 
 @media (max-width: 600px) {
   .manga-book {
-    --book-width: min(220px, 45vw);
+    --book-width: min(253px, 45vw);
     --book-height: calc(var(--book-width) * 4 / 3);
     --open-scale: 1.05;
   }
