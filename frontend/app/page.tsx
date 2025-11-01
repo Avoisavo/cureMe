@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getUserData, type UserData } from "./utils/auth";
+import { getUserData, type UserData } from "./utils/userData/auth";
 
 export default function Home() {
   const [user, setUser] = useState<UserData | null>(null);

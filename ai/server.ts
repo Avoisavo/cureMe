@@ -6,7 +6,7 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
-import { chatWithOpenAI, chatWithLlama, chatWithQwen, chatWithGPTOSS, discussWithAllModels } from './index';
+import { chatWithOpenAI, chatWithLlama, chatWithQwen, chatWithGPTOSS, discussWithAllModels, generateFirstMessageResponses, generateStyledResponse } from './index';
 
 const app = express();
 const PORT = 3001; // Changed to 3001 to avoid conflict with Next.js frontend on 3000
@@ -24,10 +24,48 @@ if (!fs.existsSync(chatsDir)) {
 // API Routes
 app.post('/api/chat', async (req, res) => {
   try {
-    const { prompt, model } = req.body;
+    const { prompt, model, isFirstMessage, preferredStyle, conversationHistory } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // Handle first message - return both rational and emotional responses
+    if (isFirstMessage === true) {
+      try {
+        console.log('Generating first message responses...');
+        const result = await generateFirstMessageResponses(prompt);
+        console.log('First message responses generated successfully');
+        return res.json({
+          success: true,
+          isFirstMessage: true,
+          originalResponse: result.originalResponse,
+          rationalResponse: result.rationalResponse,
+          emotionalResponse: result.emotionalResponse,
+          duration: result.duration,
+        });
+      } catch (error: any) {
+        console.error('Error generating first message responses:', error);
+        return res.status(500).json({
+          success: false,
+          error: error.message || 'Failed to generate first message responses',
+        });
+      }
+    }
+
+    // Handle subsequent messages with preferred style
+    if (preferredStyle && (preferredStyle === 'rational' || preferredStyle === 'emotional')) {
+      const formattedHistory = conversationHistory?.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+      
+      const response = await generateStyledResponse(prompt, preferredStyle, formattedHistory);
+      return res.json({
+        success: true,
+        response: response,
+        style: preferredStyle,
+      });
     }
 
     // Special case: "all" model triggers discussion
@@ -49,12 +87,12 @@ app.post('/api/chat', async (req, res) => {
 
     switch (model) {
       case 'openai':
-        // Try GPT-OSS-20B via Groq as OpenAI replacement, fallback to Llama 70B
+        // Try GPT-OSS-20B via Phala as OpenAI replacement, fallback to GPT-OSS-120B
         try {
           response = await chatWithGPTOSS(prompt, '20b');
         } catch (error: any) {
-          console.log('GPT-OSS-20B unavailable, falling back to Llama 70B');
-          response = await chatWithLlama(prompt, '3.3-70b');
+          console.log('GPT-OSS-20B unavailable, falling back to GPT-OSS-120B');
+          response = await chatWithGPTOSS(prompt, '120b');
         }
         break;
       case 'llama-8b':
@@ -64,7 +102,7 @@ app.post('/api/chat', async (req, res) => {
         response = await chatWithLlama(prompt, '3.3-70b');
         break;
       case 'qwen':
-        response = await chatWithQwen(prompt, '3-32b');
+        response = await chatWithQwen(prompt, '2.5-7b');
         break;
       default:
         return res.status(400).json({ error: 'Invalid model. Available: openai, llama-8b, llama-70b, qwen, all' });

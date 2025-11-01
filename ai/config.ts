@@ -1,6 +1,6 @@
 /**
- * Configuration for AI APIs (OpenAI and Groq)
- * Make sure to set OPENAI_API_KEY and GROQ_API_KEY in your .env file
+ * Configuration for AI APIs (OpenAI and Phala Cloud AI / RedPill)
+ * Make sure to set OPENAI_API_KEY and PHALA_API_KEY in your .env file
  */
 
 import dotenv from 'dotenv';
@@ -19,57 +19,46 @@ export const openAIConfig = {
   apiKey: getOpenAIApiKey(),
 };
 
-// Groq API Configuration
-export function getGroqApiKey(): string {
-  const apiKey = process.env.GROQ_API_KEY;
+// Phala Cloud AI (RedPill) API Configuration
+export function getPhalaApiKey(): string {
+  const apiKey = process.env.PHALA_API_KEY || process.env.CONFIDENTIAL_AI_KEY;
   
   if (!apiKey) {
     throw new Error(
-      'GROQ_API_KEY is not set. Please add it to your .env file.'
+      'PHALA_API_KEY or CONFIDENTIAL_AI_KEY is not set. Please add it to your .env file.'
     );
   }
   
   return apiKey;
 }
 
-export const groqConfig = {
-  apiKey: getGroqApiKey(),
+export const phalaConfig = {
+  apiKey: getPhalaApiKey(),
+  baseURL: 'https://api.redpill.ai/v1',
 };
 
-// Available Groq Models (validated as of Nov 2025)
-export const GroqModels = {
-  // Llama Models (VALIDATED - Working)
-  llama: {
-    '8b-instant': 'llama-3.1-8b-instant',        // ✅ Fast, lightweight - WORKING
-    '3.3-70b': 'llama-3.3-70b-versatile',        // ✅ Latest version - WORKING
-    // 'tool-use-70b': 'llama-3-groq-70b-tool-use', // ⚠️ Specialized for tool use (needs testing)
-    // 'tool-use-8b': 'llama-3-groq-8b-tool-use',   // ⚠️ Specialized for tool use (needs testing)
-  },
-  // Qwen Models (VALIDATED - Working)
-  qwen: {
-    '3-32b': 'qwen/qwen3-32b',                   // ✅ 32B Qwen model - WORKING
-    // '2.5-7b': 'qwen/qwen2.5-7b-instruct',      // ⚠️ Needs testing
-    // '2.5-14b': 'qwen/qwen2.5-14b-instruct',    // ⚠️ Needs testing
-    // '2.5-32b': 'qwen/qwen2.5-32b-instruct',    // ⚠️ Needs testing
-    // '2.5-72b': 'qwen/qwen2.5-72b-instruct',    // ⚠️ Needs testing
-  },
-  // Mixtral Models (NEEDS TESTING)
-  mixtral: {
-    // '8x7b': 'mixtral-8x7b-32768',              // ⚠️ Needs testing
-    // '8x22b': 'mixtral-8x22b-instruct-32768',   // ⚠️ Needs testing
-  },
-  // Gemma Models (NEEDS TESTING)
-  gemma: {
-    // '7b-it': 'gemma-7b-it',                    // ⚠️ Needs testing
-    // '2-9b-it': 'gemma2-9b-it',                  // ⚠️ Needs testing
-  },
+// Available Phala Cloud AI Models
+export const PhalaModels = {
   // OpenAI OSS Models
   openaiOss: {
-    '20b': 'openai/gpt-oss-20b',                // ✅ GPT-4 replacement - 20B model (correct format: openai/gpt-oss-20b)
-    // '120b': 'openai/gpt-oss-120b',            // ❌ Not available
+    '20b': 'openai/gpt-oss-20b',                // ✅ GPT-4 replacement - 20B model
+    '120b': 'openai/gpt-oss-120b',              // ✅ GPT-4 replacement - 120B model
   },
-  // Note: The following models are NOT available:
-  // - llama-3.1-70b-versatile (deprecated/decommissioned)
-  // - llama-3.1-405b-instruct (may not be available)
-  // - DeepSeek models (not available on Groq)
+  // Qwen Models
+  qwen: {
+    '2.5-7b': 'qwen/qwen-2.5-7b-instruct',      // ✅ Qwen 2.5 7B Instruct
+    '2.5-vl-72b': 'qwen/qwen2.5-vl-72b-instruct', // ✅ Qwen 2.5 VL 72B Instruct
+    '3-vl-235b': 'qwen/qwen3-vl-235b-a22b-instruct', // ✅ Qwen3 VL 235B Instruct
+  },
+  // DeepSeek Models
+  deepseek: {
+    'chat-v3': 'deepseek/deepseek-chat-v3-0324', // ✅ DeepSeek Chat V3
+  },
+  // Google Models
+  google: {
+    'gemma-3-27b': 'google/gemma-3-27b-it',    // ✅ Gemma 3 27B
+  },
 } as const;
+
+// Backward compatibility - keep GroqModels as alias to PhalaModels
+export const GroqModels = PhalaModels;

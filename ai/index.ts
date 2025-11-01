@@ -1,13 +1,12 @@
 /**
- * Example usage of AI APIs (OpenAI and Groq)
+ * Example usage of AI APIs (OpenAI and Phala Cloud AI / RedPill)
  */
 
 import OpenAI from 'openai';
-import Groq from 'groq-sdk';
-import { getOpenAIApiKey, getGroqApiKey, GroqModels as GroqModelsConfig } from './config';
+import { getOpenAIApiKey, getPhalaApiKey, phalaConfig, PhalaModels as PhalaModelsConfig } from './config';
 
 // Re-export for convenience
-export { GroqModelsConfig as GroqModels };
+export { PhalaModelsConfig as GroqModels };
 
 // Initialize OpenAI client (optional - only if API key is set)
 let openai: OpenAI | null = null;
@@ -16,9 +15,10 @@ if (openaiApiKey) {
   openai = new OpenAI({ apiKey: openaiApiKey });
 }
 
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: getGroqApiKey(),
+// Initialize Phala Cloud AI (RedPill) client - OpenAI-compatible
+const phala = new OpenAI({
+  apiKey: getPhalaApiKey(),
+  baseURL: phalaConfig.baseURL,
 });
 
 /**
@@ -45,14 +45,14 @@ export async function chatWithOpenAI(prompt: string, model: string = 'gpt-4'): P
 }
 
 /**
- * Example: Groq chat completion with open-source models
+ * Example: Phala Cloud AI (RedPill) chat completion with open-source models
  */
-export async function chatWithGroq(
+export async function chatWithPhala(
   prompt: string, 
-  model: string = 'llama-3.1-8b-instant'
+  model: string = 'openai/gpt-oss-20b'
 ) {
   try {
-    const completion = await groq.chat.completions.create({
+    const completion = await phala.chat.completions.create({
       model: model,
       messages: [
         { role: 'user', content: prompt }
@@ -61,30 +61,32 @@ export async function chatWithGroq(
 
     return completion.choices[0].message.content;
   } catch (error) {
-    console.error('Error calling Groq API:', error);
+    console.error('Error calling Phala Cloud AI API:', error);
     throw error;
   }
 }
 
+// Backward compatibility - keep Groq function name
+export const chatWithGroq = chatWithPhala;
+
 /**
- * Chat with Llama models via Groq
- * Available models:
- * - '8b-instant': Fast, lightweight model (recommended for quick responses)
- * - '3.3-70b': More capable 70B model (recommended for complex tasks)
+ * Chat with Llama models - now uses Phala Cloud AI
+ * Note: Phala doesn't have Llama models, using GPT OSS 20B as replacement
  */
 export async function chatWithLlama(
   prompt: string,
   model: '8b-instant' | '3.3-70b' = '8b-instant'
 ) {
-  const modelName = GroqModelsConfig.llama[model];
-  return chatWithGroq(prompt, modelName);
+  // Use GPT OSS 20B as replacement for Llama models
+  return chatWithPhala(prompt, PhalaModelsConfig.openaiOss['20b']);
 }
 
 /**
  * Chat with Llama 3.3 70B for more complex tasks
  */
 export async function chatWithLlama70B(prompt: string) {
-  return chatWithLlama(prompt, '3.3-70b');
+  // Use GPT OSS 120B for larger model
+  return chatWithPhala(prompt, PhalaModelsConfig.openaiOss['120b']);
 }
 
 /**
@@ -108,30 +110,33 @@ function cleanQwenResponse(response: string | null): string | null {
 }
 
 /**
- * Chat with Qwen models via Groq
+ * Chat with Qwen models via Phala Cloud AI
  * Available models:
- * - '3-32b': Qwen 3 32B model (recommended for complex tasks)
+ * - '2.5-7b': Qwen 2.5 7B Instruct
+ * - '2.5-vl-72b': Qwen 2.5 VL 72B Instruct (multimodal)
+ * - '3-vl-235b': Qwen3 VL 235B Instruct (multimodal)
  */
 export async function chatWithQwen(
   prompt: string,
-  model: '3-32b' = '3-32b'
+  model: '2.5-7b' | '2.5-vl-72b' | '3-vl-235b' = '2.5-7b'
 ) {
-  const modelName = GroqModelsConfig.qwen[model];
-  const response = await chatWithGroq(prompt, modelName);
+  const modelName = PhalaModelsConfig.qwen[model];
+  const response = await chatWithPhala(prompt, modelName);
   return cleanQwenResponse(response);
 }
 
 /**
- * Chat with OpenAI OSS models via Groq
+ * Chat with OpenAI OSS models via Phala Cloud AI
  * Available models:
  * - '20b': GPT-OSS 20B model (GPT-4 replacement)
+ * - '120b': GPT-OSS 120B model (larger GPT-4 replacement)
  */
 export async function chatWithGPTOSS(
   prompt: string,
-  model: '20b' = '20b'
+  model: '20b' | '120b' = '20b'
 ): Promise<string | null> {
-  const modelName = GroqModelsConfig.openaiOss[model];
-  return chatWithGroq(prompt, modelName);
+  const modelName = PhalaModelsConfig.openaiOss[model];
+  return chatWithPhala(prompt, modelName);
 }
 
 /**
@@ -148,46 +153,34 @@ export async function discussWithAllModels(
 }> {
   const startTime = Date.now();
 
-  // Step 1: Get initial responses from all models
-  console.log('🤖 Step 1: Getting initial responses from all models...');
+  // Step 1: Get initial responses from 3 models only (GPT, DeepSeek, Qwen)
+  console.log('🤖 Step 1: Getting initial responses from GPT, DeepSeek, and Qwen...');
   
-  // Use GPT-OSS-20B via Groq as OpenAI replacement (since user doesn't have OpenAI API key)
-  // If real OpenAI is available, use it; otherwise use GPT-OSS-20B, fallback to Llama 70B
-  let openaiResp: string | null = null;
-  if (openai) {
-    try {
-      openaiResp = await chatWithOpenAI(initialPrompt, 'gpt-4');
-    } catch (error: any) {
-      console.log('⚠️ OpenAI unavailable, trying GPT-OSS-20B via Groq');
+  // Get GPT response - use OpenAI if available, otherwise GPT-OSS-20B via Phala
+  const getGPTResponse = async (): Promise<string | null> => {
+    if (openai) {
       try {
-        openaiResp = await chatWithGPTOSS(initialPrompt, '20b');
-      } catch (ossError: any) {
-        console.log('⚠️ GPT-OSS-20B unavailable, falling back to Llama 70B');
-        openaiResp = await chatWithLlama(initialPrompt, '3.3-70b').catch(e => `Error: ${e.message}`);
+        return await chatWithOpenAI(initialPrompt, 'gpt-4');
+      } catch (error: any) {
+        console.log('⚠️ OpenAI unavailable, trying GPT-OSS-20B via Phala');
+        return await chatWithGPTOSS(initialPrompt, '20b').catch(e => `Error: ${e.message}`);
       }
+    } else {
+      return await chatWithGPTOSS(initialPrompt, '20b').catch(e => `Error: ${e.message}`);
     }
-  } else {
-    // No OpenAI key, try GPT-OSS-20B, fallback to Llama 70B
-    console.log('Trying GPT-OSS-20B via Groq as OpenAI replacement');
-    try {
-      openaiResp = await chatWithGPTOSS(initialPrompt, '20b');
-    } catch (error: any) {
-      console.log('⚠️ GPT-OSS-20B unavailable, falling back to Llama 70B');
-      openaiResp = await chatWithLlama(initialPrompt, '3.3-70b').catch(e => `Error: ${e.message}`);
-    }
-  }
-  
-  const [llama8bResp, llama70bResp, qwenResp] = await Promise.all([
-    chatWithLlama(initialPrompt, '8b-instant').catch(e => `Error: ${e.message}`),
-    chatWithLlama(initialPrompt, '3.3-70b').catch(e => `Error: ${e.message}`),
-    chatWithQwen(initialPrompt, '3-32b').catch(e => `Error: ${e.message}`),
+  };
+
+  // Get all 3 responses in parallel
+  const [gptResp, deepseekResp, qwenResp] = await Promise.all([
+    getGPTResponse(),
+    chatWithPhala(initialPrompt, PhalaModelsConfig.deepseek['chat-v3']).catch(e => `Error: ${e.message}`),
+    chatWithQwen(initialPrompt, '2.5-7b').catch(e => `Error: ${e.message}`),
   ]);
 
   const initialResponses: Record<string, string> = {
-    'OpenAI GPT-4': openaiResp || 'No response', // Always include this, using GPT-OSS-120B via Groq if OpenAI unavailable
-    'Llama 8B': llama8bResp || 'No response',
-    'Llama 70B': llama70bResp || 'No response',
-    'Qwen 32B': qwenResp || 'No response',
+    'GPT': gptResp || 'No response',
+    'DeepSeek': deepseekResp || 'No response',
+    'Qwen': qwenResp || 'No response',
   };
 
   // Step 2: Create discussion prompt with all responses (regular version)
@@ -203,106 +196,37 @@ User's Question: "${initialPrompt}"
 Initial Responses:
 ${responsesText}
 
-Please analyze all these responses, identify the best points from each, address any disagreements, and provide a single comprehensive final answer that synthesizes the best insights from all models. Be concise but thorough.`;
+Please analyze all these responses, identify the best points from each, address any disagreements, and provide a single comprehensive final answer that synthesizes the best insights from all models. Be concise but thorough. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.`;
 
   console.log('💬 Step 2: Models discussing and reaching consensus...');
 
   // Step 3: Get the regular final answer
-  // Use OpenAI GPT-4 for synthesis if available, otherwise GPT-OSS-20B, fallback to Llama 70B
+  // Use OpenAI GPT-4 for synthesis if available, otherwise GPT-OSS-20B, fallback to GPT-OSS-120B
   const discussion = `Models analyzed each other's responses and discussed key points.`;
-  let finalAnswer: string | null;
-  
-  if (openai) {
-    console.log('Using OpenAI GPT-4 for synthesis');
-    try {
-      finalAnswer = await chatWithOpenAI(discussionPrompt, 'gpt-4');
-    } catch (error: any) {
-      console.log('OpenAI synthesis failed, trying GPT-OSS-20B via Groq');
-      try {
-        finalAnswer = await chatWithGPTOSS(discussionPrompt, '20b');
-      } catch (ossError: any) {
-        console.log('GPT-OSS-20B failed, falling back to Llama 70B');
-        finalAnswer = await chatWithLlama(discussionPrompt, '3.3-70b').catch(e => {
-          console.error('Error in synthesis:', e);
-          return null;
-        });
-      }
-    }
-  } else {
-    console.log('Trying GPT-OSS-20B for synthesis via Groq');
-    try {
-      finalAnswer = await chatWithGPTOSS(discussionPrompt, '20b');
-    } catch (error: any) {
-      console.log('GPT-OSS-20B failed, falling back to Llama 70B');
-      finalAnswer = await chatWithLlama(discussionPrompt, '3.3-70b').catch(e => {
-        console.error('Error in synthesis:', e);
-        return null;
-      });
-    }
-  }
+  console.log('Using GPT-OSS-20B for fast synthesis');
+  const finalAnswer = await chatWithGPTOSS(discussionPrompt, '20b').catch(async (e) => {
+    console.log('GPT-OSS-20B failed, trying Qwen fallback');
+    return await chatWithQwen(discussionPrompt, '2.5-7b').catch(err => {
+      console.error('Error in synthesis:', err);
+      return null;
+    });
+  });
 
-  // Step 4: Generate humanized version
+  // Step 4: Generate humanized version - simplified prompt for speed
   console.log('❤️ Step 3: Creating humanized version...');
-  const humanizePrompt = `Take this answer and rewrite it in a warm, heartfelt, and deeply human manner using simple, everyday words:
+  const humanizePrompt = `Rewrite this answer in a warm, heartfelt manner using simple words (~150 words, flowing paragraphs, no colons or dashes). IMPORTANT: End with a caring question that invites the user to share more:
 
-Original Answer: "${finalAnswer}"
+"${finalAnswer}"`;
 
-IMPORTANT FORMAT AND TONE GUIDELINES:
-- Write in ESSAY FORM - flowing, connected paragraphs, NOT bullet points or numbered lists
-- Keep it CONCISE - aim for approximately 150 words total (about 1-2 short paragraphs)
-- Use SIMPLE, EVERYDAY WORDS - write as if talking to a friend in casual conversation
-- Avoid fancy, complex, or formal words - use words you'd say in daily life
-- DO NOT mention any AI models, open source models, GPT-4, Llama, Qwen, or any technical sources
-- DO NOT say things like "GPT-4 suggested" or reference where the information came from
-- Write as if the knowledge comes naturally from you, not from AI models or sources
-- DO NOT use colons (:) in your response - write naturally without them
-- DO NOT use double dashes (--), em dashes, or any dash-like separators in your response
-- AVOID listing multiple examples in a row (like "xxx, xxx, and xxx") - this sounds too much like AI
-- If you need to give examples, mention only ONE or TWO at most, and weave them naturally into sentences
-- Use PROPER PUNCTUATION AND CAPITALIZATION - start sentences with capital letters, avoid starting with lowercase words like "and," "but," or casual words like "hey," unless they're mid-sentence
-- Ensure proper sentence structure - each sentence should start with a capital letter and end with proper punctuation
-- Write in a warm, human, and heartfelt manner as if you truly care about the person asking
-- Use natural, conversational language - like you're explaining something to a friend over coffee
-- Show empathy and understanding when appropriate
-- Be genuine and authentic - don't use words that sound too academic or sophisticated
-- Write as if you're having a thoughtful conversation with a close friend
-- Connect ideas smoothly between paragraphs - make it read like a cohesive essay
-- Make it feel like it comes from a caring, thoughtful human who genuinely wants to help
-- Focus on the most important points and express them simply and clearly, rather than listing everything
-
-Rewrite the answer above as a concise, heartfelt essay using simple, everyday language that anyone can understand. Write like you're talking to a friend, not writing a formal essay. Do not use any dashes (--, —, or -) or colons (:) in your response. Avoid giving multiple examples in lists. DO NOT mention any AI models, GPT-4, or sources - write as if you're sharing your own knowledge naturally. IMPORTANT: Keep it to approximately 150 words - be concise and focus only on the most essential points.`;
-
-  // Use OpenAI GPT-4 for humanization if available, otherwise GPT-OSS-20B, fallback to Llama 70B
-  let humanizedAnswer: string | null;
-  
-  if (openai) {
-    console.log('Using OpenAI GPT-4 for humanization');
-    try {
-      humanizedAnswer = await chatWithOpenAI(humanizePrompt, 'gpt-4');
-    } catch (error: any) {
-      console.log('OpenAI humanization failed, trying GPT-OSS-20B via Groq');
-      try {
-        humanizedAnswer = await chatWithGPTOSS(humanizePrompt, '20b');
-      } catch (ossError: any) {
-        console.log('GPT-OSS-20B failed, falling back to Llama 70B');
-        humanizedAnswer = await chatWithLlama(humanizePrompt, '3.3-70b').catch(e => {
-          console.error('Error in humanization:', e);
-          return null;
-        });
-      }
-    }
-  } else {
-    console.log('Trying GPT-OSS-20B for humanization via Groq');
-    try {
-      humanizedAnswer = await chatWithGPTOSS(humanizePrompt, '20b');
-    } catch (error: any) {
-      console.log('GPT-OSS-20B failed, falling back to Llama 70B');
-      humanizedAnswer = await chatWithLlama(humanizePrompt, '3.3-70b').catch(e => {
-        console.error('Error in humanization:', e);
-        return null;
-      });
-    }
-  }
+  // Use fast GPT-OSS-20B for humanization
+  console.log('Using GPT-OSS-20B for fast humanization');
+  let humanizedAnswer = await chatWithGPTOSS(humanizePrompt, '20b').catch(async (e) => {
+    console.log('GPT-OSS-20B failed, trying Qwen fallback');
+    return await chatWithQwen(humanizePrompt, '2.5-7b').catch(err => {
+      console.error('Error in humanization:', err);
+      return null;
+    });
+  });
   
   // Clean up any remaining dashes, colons, model mentions, and fix punctuation/capitalization issues
   if (humanizedAnswer) {
@@ -352,6 +276,178 @@ Rewrite the answer above as a concise, heartfelt essay using simple, everyday la
     humanizedAnswer: humanizedAnswer || 'Unable to generate humanized answer',
     duration,
   };
+}
+
+/**
+ * Generate two different style responses for first message: rational and emotional
+ */
+export async function generateFirstMessageResponses(
+  initialPrompt: string
+): Promise<{
+  originalResponse: string;
+  rationalResponse: string;
+  emotionalResponse: string;
+  duration: number;
+}> {
+  const startTime = Date.now();
+
+  // Generate only the original response (Response 1 and 2 are hardcoded)
+  console.log('🚀 Generating original response...');
+
+  // Helper to get fast response
+  const getFastResponse = async (prompt: string): Promise<string | null> => {
+    try {
+      // Try GPT-OSS-20B first (fastest model)
+      return await chatWithGPTOSS(prompt, '20b');
+    } catch (error: any) {
+      console.log('GPT-OSS-20B failed, trying fallback:', error.message);
+      // Fallback to Qwen (fast alternative)
+      return await chatWithQwen(prompt, '2.5-7b').catch(e => {
+        console.error('All models failed:', e.message);
+        return null;
+      });
+    }
+  };
+
+  // Original response prompt - direct answer
+  const originalPrompt = `Answer the following question clearly and comprehensively in around 200 words. Use flowing paragraphs, not bullet points. Do not use colons (:) or dashes (--, —). Write naturally. IMPORTANT: End your response with a thoughtful, engaging question related to the topic that encourages the user to continue the conversation.
+
+${initialPrompt}`;
+
+  // Generate only the original response
+  const originalResponse = await getFastResponse(originalPrompt);
+
+  // Hardcoded Response 1 (Rational)
+  const rationalResponse = `I'll approach this with a clear, analytical perspective focusing on facts and structured reasoning. Let me break this down systematically to help you understand the key aspects and implications. We'll examine the evidence, consider multiple perspectives, and identify the most logical pathways forward based on available information and established principles. This analytical approach will help you make informed decisions and understand the underlying patterns. What specific aspects of this topic would you like to explore in more depth?`;
+
+  // Hardcoded Response 2 (Emotional)
+  const emotionalResponse = `I hear you, and I want you to know that your feelings and thoughts matter deeply. Whatever you're experiencing, it's valid, and you're not alone in this. I'm here to offer support and understanding, to help you navigate through whatever challenges or questions you're facing. Together, we can work through this with compassion and care. Your wellbeing is important, and I want to help you feel supported and understood. How are you feeling about this right now? What would be most helpful for you to share?`;
+
+  // Clean up original response
+  const cleanResponse = (response: string | null): string => {
+    if (!response) return 'Unable to generate response';
+    return response
+      .replace(/GPT-4|gpt-4|GPT4|gpt4/gi, '')
+      .replace(/Llama|llama/gi, '')
+      .replace(/Qwen|qwen/gi, '')
+      .replace(/OpenAI|openai/gi, '')
+      .replace(/--/g, ' ')
+      .replace(/—/g, ' ')
+      .replace(/:/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\.([a-zA-Z])/g, '. $1')
+      .trim();
+  };
+
+  const duration = Date.now() - startTime;
+
+  return {
+    originalResponse: cleanResponse(originalResponse),
+    rationalResponse: rationalResponse,
+    emotionalResponse: emotionalResponse,
+    duration,
+  };
+}
+
+/**
+ * Generate response in a specific style (rational or emotional) with conversation context
+ */
+export async function generateStyledResponse(
+  prompt: string,
+  style: 'rational' | 'emotional',
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+): Promise<string> {
+  // Helper function to get fast response with fallback
+  async function getResponseWithFallback(prompt: string): Promise<string | null> {
+    // Always use GPT-OSS-20B for speed (fastest model)
+    try {
+      return await chatWithGPTOSS(prompt, '20b');
+    } catch (error: any) {
+      // Quick fallback to Qwen (fast alternative)
+      return await chatWithQwen(prompt, '2.5-7b').catch(e => {
+        console.error('Error generating response:', e);
+        return null;
+      });
+    }
+  }
+
+  // Helper function to clean response
+  function cleanResponse(response: string | null): string {
+    if (!response) return 'Unable to generate response';
+    return response
+      .replace(/GPT-4|gpt-4|GPT4|gpt4/gi, '')
+      .replace(/Llama|llama/gi, '')
+      .replace(/Qwen|qwen/gi, '')
+      .replace(/OpenAI|openai/gi, '')
+      .replace(/--/g, ' ')
+      .replace(/—/g, ' ')
+      .replace(/:/g, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\.([a-zA-Z])/g, '. $1')
+      .trim();
+  }
+
+  // Build context from conversation history if provided
+  let contextPrompt = '';
+  if (conversationHistory && conversationHistory.length > 0) {
+    contextPrompt = 'Previous conversation:\n';
+    conversationHistory.forEach(msg => {
+      contextPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
+    });
+    contextPrompt += '\nCurrent question: ';
+  }
+
+  const basePrompt = conversationHistory 
+    ? `${contextPrompt}"${prompt}"`
+    : `"${prompt}"`;
+
+  if (style === 'rational') {
+    const rationalPrompt = `Answer the following question in a clear, analytical, and logical manner. Focus on facts, evidence, and structured reasoning:
+
+${basePrompt}
+
+STYLE GUIDELINES:
+- Be analytical and logical - present information systematically
+- Focus on facts, evidence, and clear reasoning
+- Use structured thinking - break down complex topics into clear components
+- Be objective and balanced
+- Use clear, precise language
+- Organize information logically
+- Be concise but thorough - around 200-250 words
+- Write in essay form with flowing paragraphs
+- DO NOT mention any AI models or sources
+- DO NOT use colons (:) or dashes (--, —)
+- IMPORTANT: End your response with a thoughtful, analytical question that invites further discussion or deeper exploration of the topic
+
+Provide your analytical answer with a question at the end:`;
+
+    const response = await getResponseWithFallback(rationalPrompt);
+    return cleanResponse(response);
+  } else {
+    const emotionalPrompt = `Answer the following question in a warm, empathetic, and emotionally supportive manner. Focus on understanding, validation, and emotional connection:
+
+${basePrompt}
+
+STYLE GUIDELINES:
+- Be warm and empathetic - acknowledge feelings and emotions
+- Show understanding and validation
+- Use supportive, caring language
+- Focus on emotional well-being and personal growth
+- Be encouraging and hopeful
+- Use simple, heartfelt words
+- Show genuine care and concern
+- Be concise but meaningful - around 80-100 words
+- Write in essay form with flowing paragraphs
+- DO NOT mention any AI models or sources
+- DO NOT use colons (:) or dashes (--, —)
+- Use natural, conversational language
+- IMPORTANT: End your response with a caring, open-ended question that invites the user to share more about their feelings, thoughts, or experiences
+
+Provide your warm and supportive answer with a question at the end:`;
+
+    const response = await getResponseWithFallback(emotionalPrompt);
+    return cleanResponse(response);
+  }
 }
 
 
