@@ -118,23 +118,40 @@ function Window() {
   )
 }
 
+function Bed() {
+  const materials = useLoader(MTLLoader, '/obj/bed_single_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/bed_single_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[4, 0, -3]} 
+      scale={1.2}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
 function Lights() {
   return (
     <>
       {/* Ambient light for overall illumination */}
-      <ambientLight intensity={0.8} />
+      <ambientLight intensity={1.2} />
       
       {/* Main light from above */}
-      <pointLight position={[0, 5, 0]} intensity={2} />
+      <pointLight position={[0, 5, 0]} intensity={3} />
       
       {/* Side lights for better wall visibility */}
-      <pointLight position={[-4, 3, 2]} intensity={1} color="#fff8e7" />
-      <pointLight position={[4, 3, 2]} intensity={1} color="#fff8e7" />
+      <pointLight position={[-4, 3, 2]} intensity={1.5} color="#fff8e7" />
+      <pointLight position={[4, 3, 2]} intensity={1.5} color="#fff8e7" />
       
       {/* Front fill light */}
       <directionalLight 
         position={[0, 3, 5]} 
-        intensity={1.2} 
+        intensity={2} 
         castShadow
       />
     </>
@@ -168,6 +185,9 @@ export default function LivingRoom() {
         
         {/* Window on back wall */}
         <Window />
+        
+        {/* Single bed */}
+        <Bed />
       </Canvas>
     </div>
   )
