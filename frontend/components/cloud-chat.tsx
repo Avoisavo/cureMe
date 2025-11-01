@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-interface Message {
+export interface Message {
   id: number;
   role: 'user' | 'assistant' | 'pending-selection';
   content?: string;
@@ -14,9 +14,10 @@ interface Message {
 
 interface CloudChatProps {
   onClose?: () => void;
+  onMessagesUpdate?: (messages: Message[]) => void;
 }
 
-export default function CloudChat({ onClose }: CloudChatProps) {
+export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +36,12 @@ export default function CloudChat({ onClose }: CloudChatProps) {
     }, 100);
     return () => clearTimeout(timer);
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (onMessagesUpdate) {
+      onMessagesUpdate(messages);
+    }
+  }, [messages, onMessagesUpdate]);
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
