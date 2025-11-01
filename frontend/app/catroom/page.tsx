@@ -6,8 +6,9 @@ import ChatPanelWrapper from "@/components/chat-panel";
 import Instruction from "@/components/instruction";
 import Cloud from "@/components/cloud";
 import Bookshelf from "@/components/Bookshelf";
-import MangaBook from "@/components/MangaBook";
-import { useState, useEffect } from "react";
+import { MangaBook3D } from "@/components/MangaBook3D";
+import { Canvas } from "@react-three/fiber";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Catroom() {
@@ -24,12 +25,21 @@ export default function Catroom() {
         setShowCloud(true);
       } else if (e.key === "3") {
         setShowBookshelf(true);
+      } else if (e.key === "Escape") {
+        // ESC key closes any open modal
+        if (showManga) {
+          setShowManga(false);
+        } else if (showBookshelf) {
+          setShowBookshelf(false);
+        } else if (showCloud) {
+          setShowCloud(false);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [router]);
+  }, [router, showManga, showBookshelf, showCloud]);
 
   return (
     <>
@@ -117,13 +127,32 @@ export default function Catroom() {
               zIndex: 2,
             }}
           >
-            <MangaBook
-              coverImage="/cover.png"
-              title="My Daily Manga Journal"
-              description="2025 Edition"
-              leftPageImage="/manga-left.png"
-              rightPageImage="/manga-right.png"
-            />
+            <Canvas
+              shadows
+              camera={{
+                position: [0, 1, 4],
+                fov: 50,
+              }}
+              style={{ width: "100%", height: "100%" }}
+            >
+              <ambientLight intensity={0.8} />
+              <directionalLight
+                position={[5, 5, 5]}
+                intensity={0.8}
+                castShadow
+              />
+              <directionalLight position={[-5, 3, -3]} intensity={0.4} />
+              <pointLight position={[0, 2, 3]} intensity={0.5} />
+              <Suspense fallback={null}>
+                <group position={[0, -0.5, 0]}>
+                  <MangaBook3D
+                    leftPageImage="/manga-right.png"
+                    rightPageText="This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences."
+                    opened={true}
+                  />
+                </group>
+              </Suspense>
+            </Canvas>
           </div>
           {/* Close button */}
           <button

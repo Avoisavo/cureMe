@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import MangaBook from "@/components/MangaBook";
+import { Canvas } from "@react-three/fiber";
+import { MangaBook3D } from "@/components/MangaBook3D";
 import Spline from "@splinetool/react-spline";
 
 export default function MangaPage() {
   const router = useRouter();
   const [splineLoaded, setSplineLoaded] = useState(false);
+  const [bookOpened, setBookOpened] = useState(false);
 
   const handleClose = () => {
     router.back();
@@ -27,6 +29,14 @@ export default function MangaPage() {
       window.removeEventListener("keydown", handleEscKey);
     };
   }, [router]);
+
+  // Auto-open book after a short delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBookOpened(true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <main
@@ -70,22 +80,56 @@ export default function MangaPage() {
         }}
       />
 
-      {/* Manga book on top */}
+      {/* 3D Manga book */}
       <div
         style={{
           position: "relative",
           zIndex: 2,
           width: "100%",
           height: "100%",
+          pointerEvents: "auto",
         }}
       >
-        <MangaBook
-          coverImage="/cover.png"
-          title="My Daily Manga Journal"
-          description="2025 Edition"
-          leftPageImage="/manga-right.png"
-          rightPageText="This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences."
-        />
+        <Canvas
+          shadows
+          camera={{
+            position: [0, 0, 5],
+            fov: 45,
+          }}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <ambientLight intensity={1.2} />
+          <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
+          <directionalLight position={[-5, 5, 5]} intensity={0.8} />
+          <pointLight position={[0, 0, 5]} intensity={0.5} />
+          <Suspense fallback={null}>
+            <MangaBook3D
+              leftPageImage="/manga-right.png"
+              rightPageText="This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences."
+              opened={bookOpened}
+            />
+          </Suspense>
+        </Canvas>
+
+        {/* Click to open prompt */}
+        {!bookOpened && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "20%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              color: "white",
+              fontSize: "18px",
+              fontWeight: "500",
+              textShadow: "0 2px 4px rgba(0, 0, 0, 0.5)",
+              animation: "bounce 2s ease-in-out infinite",
+              pointerEvents: "none",
+            }}
+          >
+            Click the book to open
+          </div>
+        )}
       </div>
 
       {/* Close button */}
