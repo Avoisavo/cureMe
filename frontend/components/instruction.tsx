@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface InstructionProps {
   onClose?: () => void;
@@ -49,7 +50,7 @@ export default function Instruction({ onClose }: InstructionProps) {
       >
         <div 
           className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border-2 border-pink-200/50 p-8 overflow-hidden"
-          style={{ fontFamily: "'Inter', 'Poppins', 'Helvetica Neue', Arial, sans-serif" }}
+          style={{ fontFamily: "'Press Start 2P', 'Orbitron', 'VT323', 'Audiowide', monospace, cursive" }}
         >
           {/* Decorative background elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -79,21 +80,25 @@ export default function Instruction({ onClose }: InstructionProps) {
 
           {/* Content */}
           <div className="relative z-10">
-            {/* Cat emoji with animation */}
-            <div className="flex justify-center mb-6">
-              <div className="text-6xl animate-bounce" style={{ animationDuration: '2s' }}>
-                🐱
-              </div>
-            </div>
-
             {/* Title */}
-            <h2 className="text-3xl font-bold text-center text-pink-600 mb-4">
-              Hi!
+            <h2 className="text-3xl font-bold text-center text-pink-600 mb-6 mt-4" style={{ letterSpacing: '0.1em', lineHeight: '1.6' }}>
+              Hi There! 😊
             </h2>
+
+            {/* Cute Kitty Image */}
+            <div className="flex justify-center mb-6">
+              <Image 
+                src="/cutekitty.png" 
+                alt="Cute Kitty" 
+                width={200} 
+                height={200}
+                className="drop-shadow-xl"
+              />
+            </div>
 
             {/* Message */}
             <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 border-2 border-pink-200/60 mb-6">
-              <p className="text-lg text-gray-700 text-center leading-relaxed">
+              <p className="text-base text-gray-700 text-center" style={{ lineHeight: '1.8' }}>
                 I am your comfort cat! You can talk to me, and bring me to walk around my room! 🐾
               </p>
             </div>
@@ -101,7 +106,8 @@ export default function Instruction({ onClose }: InstructionProps) {
             {/* Get Started button */}
             <button
               onClick={handleClose}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-3 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              style={{ fontSize: '0.875rem', letterSpacing: '0.05em' }}
             >
               Let's Get Started! 🎉
             </button>

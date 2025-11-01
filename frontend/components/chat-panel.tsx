@@ -62,7 +62,7 @@ export default function ChatPanelWrapper({ children }: ChatPanelWrapperProps) {
             zIndex: 1,
             textAlign: 'center'
           }}>
-            🐱 Meow Chat 🐱
+             Meow Chat 
           </h2>
           <p style={{
             margin: '0.5rem 0 0 0',
@@ -82,7 +82,7 @@ export default function ChatPanelWrapper({ children }: ChatPanelWrapperProps) {
             marginBottom: '1rem'
           }}>
             <textarea
-              placeholder="Type your meow-ssage here... 😸"
+              placeholder="Type your meow-ssage here... "
               style={{
                 width: '100%',
                 height: '120px',
@@ -144,7 +144,7 @@ export default function ChatPanelWrapper({ children }: ChatPanelWrapperProps) {
           onMouseUp={(e) => {
             e.currentTarget.style.transform = 'translateY(-3px)';
           }}>
-            Send Meow-ssage 💌
+            Send Meow-ssage 
           </button>
         </div>
 
