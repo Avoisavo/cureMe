@@ -103,6 +103,10 @@ async function callModel(modelKey: string, prompt: string): Promise<string> {
     throw new Error(`PHALA_API_KEY not configured. Please add PHALA_API_KEY to .env.local`);
   }
 
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout for Phala API
+
   try {
     const response = await fetch(config.endpoint, {
       method: 'POST',
@@ -116,19 +120,44 @@ async function callModel(modelKey: string, prompt: string): Promise<string> {
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 1000
-      })
+        max_tokens: 500 // Reduced from 1000 to speed up response
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId); // Clear timeout on success
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`${config.name} API Error:`, errorText);
-      throw new Error(`${config.name} API Error: ${response.status}`);
+      console.error(`${config.name} API Error (${response.status}):`, errorText.substring(0, 200));
+      
+      // Handle specific error codes
+      if (response.status === 504 || response.status === 408) {
+        throw new Error(`${config.name} timeout - service temporarily unavailable`);
+      } else if (response.status === 429) {
+        throw new Error(`${config.name} rate limited - please try again later`);
+      } else {
+        throw new Error(`${config.name} API Error: ${response.status}`);
+      }
     }
 
     const data = await response.json();
+    clearTimeout(timeoutId); // Ensure timeout is cleared
     return data.choices[0]?.message?.content || 'No response received';
   } catch (error: any) {
+    clearTimeout(timeoutId); // Clear timeout on error
+    // Handle AbortError (timeout)
+    if (error.name === 'AbortError' || error.name === 'TimeoutError' || error.message?.includes('aborted')) {
+      console.error(`Timeout calling ${config.name} - request took longer than 45 seconds`);
+      throw new Error(`${config.name} timeout - request took too long`);
+    }
+    
+    // Handle network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      console.error(`Network error calling ${config.name}:`, error.message);
+      throw new Error(`${config.name} network error - please check your connection`);
+    }
+    
     console.error(`Error calling ${config.name}:`, error);
     throw new Error(`Failed to get response from ${config.name}: ${error.message}`);
   }
@@ -157,14 +186,36 @@ async function handleAllModelsDiscussion(prompt: string): Promise<{
     const results = await Promise.all(initialPromises);
     const initialResponses: Record<string, string> = {};
     
-    results.forEach(({ key, response }) => {
+    // Separate successful responses from errors
+    const successfulResults = results.filter(({ response }) => !response.startsWith('Error:'));
+    const errorResults = results.filter(({ response }) => response.startsWith('Error:'));
+    
+    // Only include successful responses in the discussion
+    successfulResults.forEach(({ key, response }) => {
       initialResponses[MODEL_CONFIGS[key].name] = response;
     });
+    
+    // Include error info separately (optional, for transparency)
+    errorResults.forEach(({ key, response }) => {
+      initialResponses[MODEL_CONFIGS[key].name] = `${response} (This model was unavailable)`;
+    });
 
-    // Step 2: Create a discussion summary combining all responses
-    const discussionText = results
-      .map(({ key, response }) => `${MODEL_CONFIGS[key].name}:\n${response}`)
-      .join('\n\n---\n\n');
+    // Check if we have at least one successful response
+    if (successfulResults.length === 0) {
+      return {
+        success: false,
+        error: 'All models failed to respond. Please try again later.'
+      };
+    }
+
+    // Step 2: Create a discussion summary combining all responses (including successful ones)
+    const discussionText = successfulResults.length > 0
+      ? successfulResults
+          .map(({ key, response }) => `${MODEL_CONFIGS[key].name}:\n${response}`)
+          .join('\n\n---\n\n')
+      : results
+          .map(({ key, response }) => `${MODEL_CONFIGS[key].name}:\n${response}`)
+          .join('\n\n---\n\n');
 
     const synthesisPrompt = `You are a synthesis assistant. Multiple AI models have responded to the following question:
 
@@ -182,21 +233,27 @@ Please synthesize these responses into a comprehensive, coherent answer that:
 
 Keep your synthesis clear, concise, and informative.`;
 
-    // Use OpenAI to synthesize (or fallback to first available model)
+    // Use OpenAI to synthesize (or fallback to first available successful model)
     let finalResponse: string;
     try {
       finalResponse = await callModel('openai', synthesisPrompt);
     } catch (error) {
-      // Fallback to DeepSeek if OpenAI fails
-      try {
-        finalResponse = await callModel('llama-8b', synthesisPrompt);
-      } catch (fallbackError) {
-        // If all synthesis fails, just concatenate responses
-        finalResponse = discussionText;
+      // Fallback to first available successful model
+      const availableModel = successfulResults.find(({ key }) => key !== 'openai')?.key;
+      if (availableModel) {
+        try {
+          finalResponse = await callModel(availableModel, synthesisPrompt);
+        } catch (fallbackError) {
+          // If all synthesis fails, just use the first successful response
+          finalResponse = successfulResults[0]?.response || discussionText;
+        }
+      } else {
+        // If no other models available, use the discussion text or first response
+        finalResponse = successfulResults[0]?.response || discussionText;
       }
     }
 
-    // Step 3: Create a humanized version (100 words max, paragraph form, heartfelt)
+    // Step 3: Create a humanized version (100 words max, paragraph form, heartfelt, with engaging question)
     const humanizePrompt = `Take this technical AI synthesis and rewrite it as a heartfelt, warm paragraph with smooth, flowing sentences. Make it feel like genuine advice from a caring friend:
 
 ${finalResponse}
@@ -208,18 +265,40 @@ Rewrite this as a single, smooth paragraph that:
 - Is written in paragraph form (not bullet points or list)
 - Feels personal and deeply caring
 - Removes all technical jargon
-- Is EXACTLY 100 words or less (count your words carefully)
+- Ends with an engaging, thoughtful question to encourage the user to continue the conversation (the question should feel natural and related to what was discussed)
+- Is EXACTLY 100 words or less (count your words carefully - the question at the end counts toward the word limit)
 
-Write a heartfelt, smooth paragraph (100 words max):`;
+Write a heartfelt, smooth paragraph ending with an engaging question (100 words max total, including the question):`;
 
     let humanizedResponse: string;
     try {
       humanizedResponse = await callModel('openai', humanizePrompt);
       
-      // Ensure response is exactly 100 words or less
+      // Ensure response is exactly 100 words or less, preserving question if possible
       const words = humanizedResponse.trim().split(/\s+/);
       if (words.length > 100) {
-        humanizedResponse = words.slice(0, 100).join(' ') + '.';
+        // Try to keep the question mark if it exists near the end
+        const truncated = words.slice(0, 100);
+        const lastWord = truncated[truncated.length - 1];
+        let foundQuestion = false;
+        
+        // If the original had a question mark and we're cutting it off, try to preserve it
+        if (humanizedResponse.includes('?') && !lastWord.includes('?')) {
+          // Look back up to 15 words to find the question
+          const searchBack = Math.min(15, truncated.length);
+          for (let i = truncated.length - 1; i >= truncated.length - searchBack; i--) {
+            if (truncated[i] && truncated[i].includes('?')) {
+              humanizedResponse = truncated.slice(0, i + 1).join(' ');
+              foundQuestion = true;
+              break;
+            }
+          }
+        }
+        
+        // If no question found in truncated portion, just add period
+        if (!foundQuestion) {
+          humanizedResponse = truncated.join(' ') + '.';
+        }
       }
     } catch (error) {
       // If humanization fails, use the original synthesis (also limit to 100 words)
