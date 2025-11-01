@@ -76,7 +76,7 @@ function Curtains() {
     materials.preload()
     loader.setMaterials(materials)
   })
-  
+
   return (
     <primitive 
       object={obj.clone()} 
@@ -107,7 +107,7 @@ function Window() {
       }
     })
   }, [clonedObj])
-  
+
   return (
     <primitive 
       object={clonedObj} 
@@ -124,12 +124,97 @@ function Bed() {
     materials.preload()
     loader.setMaterials(materials)
   })
-  
+
   return (
     <primitive 
       object={obj.clone()} 
       position={[4, 0, -3]} 
       scale={1.2}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Cabinet() {
+  const materials = useLoader(MTLLoader, '/obj/cabinet_small.mtl')
+  const obj = useLoader(OBJLoader, '/obj/cabinet_small.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[2.5, 0, -4]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function CouchPillows() {
+  const materials = useLoader(MTLLoader, '/obj/couch_pillows.mtl')
+  const obj = useLoader(OBJLoader, '/obj/couch_pillows.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[3.1, 0, 1]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Rug() {
+  const materials = useLoader(MTLLoader, '/obj/rug_oval_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/rug_oval_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[3.0, 0.01, 3.3]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Table() {
+  const materials = useLoader(MTLLoader, '/obj/table_medium_long.mtl')
+  const obj = useLoader(OBJLoader, '/obj/table_medium_long.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[-2.5, 0, 3.7]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Chair() {
+  const materials = useLoader(MTLLoader, '/obj/chair_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/chair_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[-2.5, 0, 3.0]} 
+      scale={1}
       rotation={[0, 0, 0]}
     />
   )
@@ -188,6 +273,21 @@ export default function LivingRoom() {
         
         {/* Single bed */}
         <Bed />
+        
+        {/* Small cabinet next to bed */}
+        <Cabinet />
+        
+        {/* Couch with pillows on right side */}
+        <CouchPillows />
+        
+        {/* Oval rug in front of couch */}
+        <Rug />
+        
+        {/* Medium table on left side */}
+        <Table />
+        
+        {/* Chair at the table */}
+        <Chair />
       </Canvas>
     </div>
   )
