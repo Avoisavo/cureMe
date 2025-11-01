@@ -17,6 +17,7 @@
   --book-rotateY: 0deg;
   --open-scale: 1.35;
   --cover-rotation: 0deg;
+  --cover-shift: 0px;
   --cover-translate-z: 2px;
   position: relative;
   width: var(--book-width);
@@ -43,7 +44,6 @@
   --book-rotateY: 0deg;
 }
 
-/* Book Cover */
 .book-cover {
   position: absolute;
   width: 100%;
@@ -51,21 +51,29 @@
   transform-style: preserve-3d;
   transition: transform 1.1s cubic-bezier(0.77, 0, 0.175, 1),
     box-shadow 1.1s cubic-bezier(0.77, 0, 0.175, 1), width 0.8s ease,
-    left 0.8s ease;
+    left 0.8s ease, opacity 0.25s ease, visibility 0s linear;
   transform-origin: left center;
-  transform: translateX(var(--book-width)) rotateY(var(--cover-rotation))
-    translateX(calc(-1 * var(--book-width))) translateZ(var(--cover-translate-z));
+  transform: translateX(var(--cover-shift)) rotateY(var(--cover-rotation))
+    translateZ(var(--cover-translate-z));
   box-shadow: 8px 12px 30px rgba(0, 0, 0, 0.25);
   z-index: 10;
+  opacity: 1;
+  visibility: visible;
 }
 
 .manga-book.open .book-cover {
   width: var(--book-width);
   left: 0;
+  --cover-shift: var(--book-width);
   --cover-rotation: -178deg;
   --cover-translate-z: -6px;
-  box-shadow: 2px 4px 18px rgba(0, 0, 0, 0.2);
+  box-shadow: -2px 4px 18px rgba(0, 0, 0, 0.2);
   z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 1.1s cubic-bezier(0.77, 0, 0.175, 1),
+    box-shadow 1.1s cubic-bezier(0.77, 0, 0.175, 1), width 0.8s ease,
+    left 0.8s ease, opacity 0.25s ease 0.85s, visibility 0s linear 1.1s;
 }
 
 .book-spine {
