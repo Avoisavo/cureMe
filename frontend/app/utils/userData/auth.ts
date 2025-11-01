@@ -38,3 +38,13 @@ export function logout(): void {
   window.location.href = '/login';
 }
 
+export function getUserName(): string | null {
+  const userData = getUserData();
+  return userData?.name || null;
+}
+
+export function getUserEmail(): string | null {
+  const userData = getUserData();
+  return userData?.email || null;
+}
+

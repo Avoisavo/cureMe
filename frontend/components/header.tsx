@@ -2,12 +2,15 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { getUserData, isAuthenticated, logout, UserData } from '@/app/utils/userData/auth';
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
 
   const navLinks = [
     { href: '/landing', label: 'Home', icon: '🏡' },
@@ -15,12 +18,40 @@ export default function Header() {
     { href: '/livingroom', label: 'Living Room', icon: '🛋️' },
   ];
 
+  // Check authentication status on mount and when pathname changes
+  useEffect(() => {
+    const checkAuth = () => {
+      const authenticated = isAuthenticated();
+      setIsLoggedIn(authenticated);
+      
+      if (authenticated) {
+        const user = getUserData();
+        setUserData(user);
+        console.log('✅ User logged in:', user?.name, user?.email);
+      } else {
+        setUserData(null);
+        console.log('❌ User not logged in');
+      }
+    };
+
+    checkAuth();
+    
+    // Also check when URL changes (e.g., after OAuth redirect)
+    const handleRouteChange = () => {
+      setTimeout(checkAuth, 100); // Small delay to ensure cookies are set
+    };
+    
+    window.addEventListener('focus', checkAuth);
+    return () => window.removeEventListener('focus', checkAuth);
+  }, [pathname]);
+
   const handleLogin = () => {
-    setIsLoggedIn(true);
+    // Redirect to Google OAuth
+    window.location.href = '/api/auth/google';
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
+    logout();
   };
 
   return (
@@ -87,13 +118,32 @@ export default function Header() {
                   <span className="text-sm">Log In</span>
                 </button>
               ) : (
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-5 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-all duration-300 hover:scale-105"
-                >
-                  <span className="text-lg">👋</span>
-                  <span className="text-sm">Log Out</span>
-                </button>
+                <div className="flex items-center gap-3">
+                  {/* User Info */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200">
+                    {userData?.picture && (
+                      <Image
+                        src={userData.picture}
+                        alt={userData.name || 'User'}
+                        width={28}
+                        height={28}
+                        className="rounded-full border-2 border-white shadow-sm"
+                      />
+                    )}
+                    <span className="text-sm font-medium text-gray-800">
+                      {userData?.name?.split(' ')[0] || 'User'}
+                    </span>
+                  </div>
+                  
+                  {/* Logout Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-all duration-300 hover:scale-105"
+                  >
+                    <span className="text-lg">👋</span>
+                    <span className="text-sm">Log Out</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
