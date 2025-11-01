@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, ReactNode } from 'react';
+import CloudChat from './cloud-chat';
 
 interface ChatPanelWrapperProps {
   children: ReactNode;
@@ -62,90 +63,13 @@ export default function ChatPanelWrapper({ children }: ChatPanelWrapperProps) {
             zIndex: 1,
             textAlign: 'center'
           }}>
-             Meow Chat 
+            🐱 Cat Chat Assistant
           </h2>
-          <p style={{
-            margin: '0.5rem 0 0 0',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-            color: '#e0e7ff',
-            fontWeight: '500'
-          }}>
-            Purr-fect Conversations ✨
-          </p>
         </div>
 
-        {/* Cute Chat Input Area */}
+        {/* Chat Interface */}
         <div style={{ marginTop: '1.5rem' }}>
-          <div style={{
-            position: 'relative',
-            marginBottom: '1rem'
-          }}>
-            <textarea
-              placeholder="Type your meow-ssage here... "
-              style={{
-                width: '100%',
-                height: '120px',
-                padding: '1rem 1.25rem',
-                border: '2px solid rgba(139, 92, 246, 0.3)',
-                borderRadius: '20px',
-                fontSize: '1rem',
-                resize: 'vertical',
-                background: 'rgba(255, 255, 255, 0.8)',
-                color: '#6366f1',
-                fontWeight: '400',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.15)',
-                outline: 'none',
-                transition: 'all 0.3s ease'
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = '#8b5cf6';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.3)';
-                e.currentTarget.style.background = 'white';
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.15)';
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.8)';
-              }}
-            />
-          </div>
-          
-          {/* Super Cute Send Button */}
-          <button style={{
-            width: '100%',
-            padding: '1.2rem 2rem',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
-            color: '#fbbf24',
-            border: '2px solid rgba(251, 191, 36, 0.3)',
-            borderRadius: '25px',
-            cursor: 'pointer',
-            fontSize: '1.1rem',
-            fontWeight: '700',
-            letterSpacing: '0.5px',
-            boxShadow: '0 6px 20px rgba(139, 92, 246, 0.5)',
-            transition: 'all 0.3s ease',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-3px)';
-            e.currentTarget.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.6)';
-            e.currentTarget.style.background = 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 6px 20px rgba(139, 92, 246, 0.5)';
-            e.currentTarget.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)';
-          }}
-          onMouseDown={(e) => {
-            e.currentTarget.style.transform = 'translateY(1px)';
-          }}
-          onMouseUp={(e) => {
-            e.currentTarget.style.transform = 'translateY(-3px)';
-          }}>
-            Send Meow-ssage 
-          </button>
+          <CloudChat />
         </div>
 
         {/* Adorable Floating Paw Print Decorations */}
