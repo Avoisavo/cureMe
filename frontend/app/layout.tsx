@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Alegreya_Sans } from "next/font/google";
+import { Geist, Geist_Mono, Alegreya_Sans, Press_Start_2P } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,6 +18,12 @@ const alegreyaSans = Alegreya_Sans({
   subsets: ["latin"],
 });
 
+const pressStart2P = Press_Start_2P({
+  weight: '400',
+  variable: "--font-press-start",
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "CureMe - Manga Journal",
   description: "Your daily life in manga form",
@@ -31,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${alegreyaSans.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${alegreyaSans.variable} ${pressStart2P.variable} antialiased`}
       >
         {children}
       </body>
