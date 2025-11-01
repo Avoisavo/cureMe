@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "components/header.tsx", "components/chat-panel.tsx", "components/cloud-chat.tsx", "components/cloud.tsx"  ],
   "exclude": ["node_modules"]
 }

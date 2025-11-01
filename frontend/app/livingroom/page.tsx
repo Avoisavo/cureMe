@@ -1,0 +1,295 @@
+'use client'
+
+import { Canvas, useLoader } from '@react-three/fiber'
+import { OrbitControls, PerspectiveCamera, useTexture } from '@react-three/drei'
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js'
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js'
+import { useEffect } from 'react'
+import * as THREE from 'three'
+
+function LeftWall() {
+  const wallTexture = useTexture('/wall_tile/wall_paper.png')
+  
+  // Set texture repeat for tiling effect
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
+  wallTexture.repeat.set(3, 2)
+  
+  return (
+    <mesh position={[-5, 2.5, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <boxGeometry args={[10, 5, 0.5]} />
+      <meshStandardMaterial 
+        map={wallTexture}
+        roughness={0.5}
+        metalness={0.1}
+        emissive="#ffffff"
+        emissiveIntensity={0.2}
+      />
+    </mesh>
+  )
+}
+
+function Floor() {
+  const tileTexture = useTexture('/wall_tile/tile.png')
+  
+  // Set texture repeat for tiling effect
+  tileTexture.wrapS = tileTexture.wrapT = THREE.RepeatWrapping
+  tileTexture.repeat.set(4, 4)
+  
+  return (
+    <mesh position={[0, -0.25, 0]} rotation={[0, 0, 0]}>
+      <boxGeometry args={[10, 0.5, 10]} />
+      <meshStandardMaterial 
+        map={tileTexture}
+        roughness={0.7}
+        metalness={0.1}
+        emissive="#442200"
+        emissiveIntensity={0.3}
+      />
+    </mesh>
+  )
+}
+
+function BackWall() {
+  const wallTexture = useTexture('/wall_tile/wall_paper.png')
+  
+  // Set texture repeat for tiling effect
+  wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping
+  wallTexture.repeat.set(3, 2)
+  
+  return (
+    <mesh position={[0, 2.5, -5]} rotation={[0, 0, 0]}>
+      <boxGeometry args={[10, 5, 0.5]} />
+      <meshStandardMaterial 
+        map={wallTexture}
+        roughness={0.5}
+        metalness={0.1}
+        emissive="#ffffff"
+        emissiveIntensity={0.2}
+      />
+    </mesh>
+  )
+}
+
+function Curtains() {
+  const materials = useLoader(MTLLoader, '/livingroomtecture/curtains.mtl')
+  const obj = useLoader(OBJLoader, '/livingroomtecture/curtains.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[0, 0, -4.5]} 
+      scale={1.2}
+      rotation={[0, Math.PI / 2, 0]}
+    />
+  )
+}
+
+function Window() {
+  const materials = useLoader(MTLLoader, '/livingroomtecture/window.mtl')
+  const obj = useLoader(OBJLoader, '/livingroomtecture/window.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  const clonedObj = obj.clone()
+  
+  useEffect(() => {
+    // Make the window glass transparent
+    clonedObj.traverse((child: any) => {
+      if (child.isMesh && child.material) {
+        // Make the material transparent
+        child.material.transparent = true
+        child.material.opacity = 0.3
+        child.material.side = THREE.DoubleSide
+      }
+    })
+  }, [clonedObj])
+
+  return (
+    <primitive 
+      object={clonedObj} 
+      position={[-0.1, 1.1, -4.7]} 
+      scale={0.8}
+      rotation={[0, Math.PI / 2, 0]}
+    />
+  )
+}
+
+function Bed() {
+  const materials = useLoader(MTLLoader, '/obj/bed_single_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/bed_single_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[4, 0, -3]} 
+      scale={1.2}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Cabinet() {
+  const materials = useLoader(MTLLoader, '/obj/cabinet_small.mtl')
+  const obj = useLoader(OBJLoader, '/obj/cabinet_small.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[2.5, 0, -4]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function CouchPillows() {
+  const materials = useLoader(MTLLoader, '/obj/couch_pillows.mtl')
+  const obj = useLoader(OBJLoader, '/obj/couch_pillows.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[3.1, 0, 1]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Rug() {
+  const materials = useLoader(MTLLoader, '/obj/rug_oval_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/rug_oval_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[3.0, 0.01, 3.3]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Table() {
+  const materials = useLoader(MTLLoader, '/obj/table_medium_long.mtl')
+  const obj = useLoader(OBJLoader, '/obj/table_medium_long.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[-2.5, 0, 3.7]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Chair() {
+  const materials = useLoader(MTLLoader, '/obj/chair_A.mtl')
+  const obj = useLoader(OBJLoader, '/obj/chair_A.obj', (loader) => {
+    materials.preload()
+    loader.setMaterials(materials)
+  })
+  
+  return (
+    <primitive 
+      object={obj.clone()} 
+      position={[-2.5, 0, 3.0]} 
+      scale={1}
+      rotation={[0, 0, 0]}
+    />
+  )
+}
+
+function Lights() {
+  return (
+    <>
+      {/* Ambient light for overall illumination */}
+      <ambientLight intensity={1.2} />
+      
+      {/* Main light from above */}
+      <pointLight position={[0, 5, 0]} intensity={3} />
+      
+      {/* Side lights for better wall visibility */}
+      <pointLight position={[-4, 3, 2]} intensity={1.5} color="#fff8e7" />
+      <pointLight position={[4, 3, 2]} intensity={1.5} color="#fff8e7" />
+      
+      {/* Front fill light */}
+      <directionalLight 
+        position={[0, 3, 5]} 
+        intensity={2} 
+        castShadow
+      />
+    </>
+  )
+}
+
+export default function LivingRoom() {
+  return (
+    <div style={{ width: '100vw', height: '100vh', background: 'linear-gradient(to bottom, #87CEEB 0%, #ffffff 100%)' }}>
+      <Canvas shadows>
+        <PerspectiveCamera makeDefault position={[15, 3, 15]} />
+        <OrbitControls 
+          target={[-3, 2.5, -4]}
+          enableDamping
+          dampingFactor={0.05}
+          minDistance={5}
+          maxDistance={35}
+        />
+        
+        <Lights />
+        
+        {/* Left Wall */}
+        <LeftWall />
+        
+        {/* Additional room elements */}
+        <BackWall />
+        <Floor />
+        
+        {/* Curtains on back wall */}
+        <Curtains />
+        
+        {/* Window on back wall */}
+        <Window />
+        
+        {/* Single bed */}
+        <Bed />
+        
+        {/* Small cabinet next to bed */}
+        <Cabinet />
+        
+        {/* Couch with pillows on right side */}
+        <CouchPillows />
+        
+        {/* Oval rug in front of couch */}
+        <Rug />
+        
+        {/* Medium table on left side */}
+        <Table />
+        
+        {/* Chair at the table */}
+        <Chair />
+      </Canvas>
+    </div>
+  )
+}
+
