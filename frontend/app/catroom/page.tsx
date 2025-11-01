@@ -262,9 +262,37 @@ export default function Catroom() {
         }
       `}</style>
       <Header />
-      <ChatPanelWrapper>
-        <Spline scene="/scene.splinecode" />
-      </ChatPanelWrapper>
+      <div
+        style={{
+          position: "relative",
+          top: "50px",
+          width: "100%",
+          height: "100vh",
+          background: "linear-gradient(to bottom, #0a0e27, #1a1a2e, #16213e)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Moon */}
+        <div className="moon"></div>
+
+        {/* Twinkling stars */}
+        <div className="star star1"></div>
+        <div className="star star2"></div>
+        <div className="star star3"></div>
+        <div className="star star4"></div>
+        <div className="star star5"></div>
+        <div className="star star6"></div>
+        <div className="star star7"></div>
+        <div className="star star8"></div>
+        <div className="star star9"></div>
+        <div className="star star10"></div>
+        <div className="star star11"></div>
+        <div className="star star12"></div>
+
+        <div style={{ position: "relative", zIndex: 1, marginTop: "80px" }}>
+          <Spline scene="/scene-2.splinecode" />
+        </div>
+      </div>
       {showInstruction && (
         <Instruction onClose={() => setShowInstruction(false)} />
       )}

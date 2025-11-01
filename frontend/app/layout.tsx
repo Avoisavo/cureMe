@@ -25,7 +25,7 @@ const pressStart2P = Press_Start_2P({
 });
 
 export const metadata: Metadata = {
-  title: "CureMe - Manga Journal",
+  title: "PsyCatrist Time",
   description: "Your daily life in manga form",
 };
 
