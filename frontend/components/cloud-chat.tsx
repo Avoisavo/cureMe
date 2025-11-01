@@ -561,6 +561,9 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         .empty-state-icon {
           font-size: 48px;
           margin-bottom: 16px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
 
         .empty-state h2 {
@@ -731,7 +734,15 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
       <div className="messages-container">
         {messages.length === 0 && !isLoading && (
           <div className="empty-state">
-            <div className="empty-state-icon">💬</div>
+            <div className="empty-state-icon">
+              <Image 
+                src="/cattap.gif" 
+                alt="Cat tapping"
+                width={80}
+                height={80}
+                unoptimized
+              />
+            </div>
             <h2>How can I help you today?</h2>
             <p>Start a conversation by typing a message below</p>
           </div>
