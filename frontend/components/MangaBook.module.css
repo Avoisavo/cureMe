@@ -233,11 +233,12 @@
 }
 
 .page-inner-border {
-  border: 2px solid #333;
   padding: 20px;
   height: 100%;
-  border-radius: 4px;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .page-title {
@@ -334,9 +335,10 @@
 }
 
 .page-manga-image {
-  width: 100%;
-  height: 100%;
+  max-width: 150%;
+  max-height: 150%;
   object-fit: contain;
+  object-position: center;
 }
 
 /* Navigation Controls */
