@@ -2,20 +2,39 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
   const code = searchParams.get('code');
   const error = searchParams.get('error');
+
+  // Log ALL query parameters for debugging
+  console.log('');
+  console.log('🔍 OAuth Callback - Full Request Details:');
+  console.log('  Full Request URL:', request.url);
+  console.log('  Request Host:', requestUrl.host);
+  console.log('  All Query Parameters:', Object.fromEntries(searchParams.entries()));
+  console.log('  Code parameter:', code || 'MISSING');
+  console.log('  Error parameter:', error || 'none');
+  console.log('');
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   
   // Dynamically determine base URL from request, or use environment variable
-  const requestUrl = new URL(request.url);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${requestUrl.protocol}//${requestUrl.host}`;
+  let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  
+  // If not set, use the request URL host (this will automatically use the correct port)
+  if (!baseUrl) {
+    baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+  }
+  
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
   
-  console.log('OAuth callback - Base URL:', baseUrl);
-  console.log('OAuth callback - Redirect URI:', redirectUri);
+  // Log for debugging
+  console.log('🔍 OAuth Callback - Redirect URI Configuration:');
+  console.log('  Base URL:', baseUrl);
+  console.log('  Redirect URI:', redirectUri);
+  console.log('');
 
   if (error) {
     console.error('Google OAuth error from callback:', error);
@@ -34,7 +53,16 @@ export async function GET(request: NextRequest) {
   }
 
   if (!code) {
-    console.error('No authorization code received from Google OAuth');
+    console.error('');
+    console.error('❌ ERROR: No authorization code received from Google');
+    console.error('  This usually means:');
+    console.error('    1. The redirect URI in Google Cloud Console does not match');
+    console.error('    2. The redirect URI used in the initial request does not match');
+    console.error('    3. Google redirected but did not include the code parameter');
+    console.error('');
+    console.error('  Current redirect URI being used:', redirectUri);
+    console.error('  Make sure this EXACT URI is in Google Cloud Console');
+    console.error('');
     return NextResponse.redirect(new URL('/login?error=no_code', request.url));
   }
 
@@ -58,6 +86,12 @@ export async function GET(request: NextRequest) {
     const payload = ticket.getPayload();
     if (!payload) {
       throw new Error('Failed to verify token');
+    }
+
+    // Restrict to Gmail accounts only
+    if (!payload.email || !payload.email.endsWith('@gmail.com')) {
+      console.error('Non-Gmail account attempted login:', payload.email);
+      return NextResponse.redirect(new URL('/login?error=gmail_only', request.url));
     }
 
     const userData = {
