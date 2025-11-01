@@ -10,9 +10,38 @@ export default function MangaPage() {
   const router = useRouter();
   const [splineLoaded, setSplineLoaded] = useState(false);
   const [bookOpened, setBookOpened] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // Page data
+  const pages = [
+    {
+      image: "/manga-left.png",
+      text: "This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences.",
+    },
+    {
+      image: "/manga-right.png",
+      text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
+    },
+  ];
 
   const handleClose = () => {
     router.back();
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < pages.length - 1) {
+      setCurrentPage(currentPage + 1);
+      setBookOpened(false);
+      setTimeout(() => setBookOpened(true), 100);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+      setBookOpened(false);
+      setTimeout(() => setBookOpened(true), 100);
+    }
   };
 
   // Add ESC key handler
@@ -104,8 +133,8 @@ export default function MangaPage() {
           <pointLight position={[0, 0, 5]} intensity={0.5} />
           <Suspense fallback={null}>
             <MangaBook3D
-              leftPageImage="/manga-right.png"
-              rightPageText="This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences."
+              leftPageImage={pages[currentPage].image}
+              rightPageText={pages[currentPage].text}
               opened={bookOpened}
             />
           </Suspense>
@@ -130,6 +159,104 @@ export default function MangaPage() {
             Click the book to open
           </div>
         )}
+      </div>
+
+      {/* Navigation buttons */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: "40px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: "20px",
+          zIndex: 1001,
+        }}
+      >
+        <button
+          onClick={handlePrevPage}
+          disabled={currentPage === 0}
+          style={{
+            padding: "12px 24px",
+            backgroundColor:
+              currentPage === 0
+                ? "rgba(200, 200, 200, 0.5)"
+                : "rgba(255, 255, 255, 0.9)",
+            border: "2px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: "25px",
+            cursor: currentPage === 0 ? "not-allowed" : "pointer",
+            fontSize: "16px",
+            fontWeight: "600",
+            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
+            transition: "all 0.2s ease",
+            color: currentPage === 0 ? "#999" : "#333",
+          }}
+          onMouseEnter={(e) => {
+            if (currentPage !== 0) {
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+              e.currentTarget.style.transform = "scale(1.05)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentPage !== 0) {
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.transform = "scale(1)";
+            }
+          }}
+        >
+          ← Previous
+        </button>
+
+        <div
+          style={{
+            padding: "12px 24px",
+            backgroundColor: "rgba(255, 255, 255, 0.9)",
+            border: "2px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: "25px",
+            fontSize: "16px",
+            fontWeight: "600",
+            color: "#333",
+          }}
+        >
+          Page {currentPage + 1} / {pages.length}
+        </div>
+
+        <button
+          onClick={handleNextPage}
+          disabled={currentPage === pages.length - 1}
+          style={{
+            padding: "12px 24px",
+            backgroundColor:
+              currentPage === pages.length - 1
+                ? "rgba(200, 200, 200, 0.5)"
+                : "rgba(255, 255, 255, 0.9)",
+            border: "2px solid rgba(0, 0, 0, 0.1)",
+            borderRadius: "25px",
+            cursor:
+              currentPage === pages.length - 1 ? "not-allowed" : "pointer",
+            fontSize: "16px",
+            fontWeight: "600",
+            boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
+            transition: "all 0.2s ease",
+            color: currentPage === pages.length - 1 ? "#999" : "#333",
+          }}
+          onMouseEnter={(e) => {
+            if (currentPage !== pages.length - 1) {
+              e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 1)";
+              e.currentTarget.style.transform = "scale(1.05)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentPage !== pages.length - 1) {
+              e.currentTarget.style.backgroundColor =
+                "rgba(255, 255, 255, 0.9)";
+              e.currentTarget.style.transform = "scale(1)";
+            }
+          }}
+        >
+          Next →
+        </button>
       </div>
 
       {/* Close button */}

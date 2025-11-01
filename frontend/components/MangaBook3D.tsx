@@ -111,20 +111,22 @@ const Page = ({ number, opened, imageTexture, textCanvas }: PageProps) => {
       new MeshStandardMaterial({
         map: imageTexture || null,
         color: whiteColor,
-        roughness: 0.1,
+        roughness: 1,
         metalness: 0,
+        flatShading: true,
       }),
       new MeshStandardMaterial({
         map: textCanvas || null,
         color: whiteColor,
-        roughness: 0.1,
+        roughness: 1,
         metalness: 0,
+        flatShading: true,
       }),
     ];
 
     const mesh = new SkinnedMesh(pageGeometry, materials);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
     mesh.frustumCulled = false;
     mesh.add(skeleton.bones[0]);
     mesh.bind(skeleton);
@@ -226,7 +228,7 @@ export const MangaBook3D = ({
 
     // Title
     ctx.fillStyle = "#2c3e50";
-    ctx.font = "bold 48px Arial, sans-serif";
+    ctx.font = "bold 48px 'Press Start 2P', 'Orbitron', 'VT323', monospace";
     ctx.textAlign = "center";
     ctx.fillText("AI Summary", canvas.width / 2, 150);
 
@@ -240,7 +242,7 @@ export const MangaBook3D = ({
 
     // Body text
     ctx.fillStyle = "#333";
-    ctx.font = "32px Arial, sans-serif";
+    ctx.font = "28px 'Orbitron', 'VT323', monospace";
     ctx.textAlign = "left";
 
     const words = rightPageText.split(" ");
