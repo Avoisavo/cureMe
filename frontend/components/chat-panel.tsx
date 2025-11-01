@@ -65,7 +65,7 @@ export default function ChatPanelWrapper({ children }: ChatPanelWrapperProps) {
             zIndex: 1,
             textAlign: 'center'
           }}>
-            🐱 Cat Chat Assistant
+             Cat Chat Assistant
           </h2>
         </div>
 

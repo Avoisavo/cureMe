@@ -70,31 +70,22 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
     setIsLoading(true);
 
     try {
-      const isFirstMessage = messages.length === 0;
-      const requestBody: any = {
-        prompt: userMessage.content,
-      };
+      // Send all messages (conversation history) to the API
+      const conversationMessages = [...messages, userMessage]
+        .filter(msg => msg.role !== 'pending-selection')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      if (isFirstMessage) {
-        requestBody.isFirstMessage = true;
-      } else if (preferredStyle) {
-        requestBody.preferredStyle = preferredStyle;
-        requestBody.conversationHistory = messages
-          .filter(msg => msg.role !== 'pending-selection')
-          .map(msg => ({
-            role: msg.role,
-            content: msg.content,
-          }));
-      } else {
-        requestBody.model = 'all';
-      }
-
-      const response = await fetch('http://localhost:3002/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          messages: conversationMessages
+        }),
       });
 
       if (!response.ok) {
@@ -181,47 +172,29 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
 
   const generateSummary = async (conversationMessages: Message[]): Promise<string> => {
     try {
-      const conversationText = conversationMessages
-        .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
-        .join('\n\n');
+      // Send conversation to API for summary generation
+      const messagesToSummarize = conversationMessages
+        .filter(msg => msg.role !== 'pending-selection')
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        }));
 
-      const summaryPrompt = `Please provide a comprehensive conclusion summarizing the user's situation, concerns, feelings, and the key points discussed in the conversation. Focus on understanding the user's complete situation - what they're experiencing, their challenges, the insights gained, and the overall context. Write this as a conclusive statement that wraps up the entire conversation. Keep it concise (around 100-150 words). 
-
-CRITICAL REQUIREMENTS:
-- Write ONLY statements and conclusions
-- DO NOT include any questions (no question marks)
-- DO NOT ask "what", "which", "how", "why", "when", "where", "who", "would", "could", "should", "can", "will", "do", "did", "does", "are", "is", "was", "were" in question form
-- End with a conclusive statement, NOT a question
-- Focus on concluding the user's situation
-
-Conversation:
-${conversationText}
-
-Conclusive Summary (statements only, no questions):`;
-
-      const response = await fetch('http://localhost:3002/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: summaryPrompt,
-          model: 'all',
+          messages: messagesToSummarize,
+          action: 'generate_summary'
         }),
       });
 
       const data = await response.json();
       
       if (data.success) {
-        let summary = data.response || data.humanizedResponse || 'Unable to generate summary';
-        
-        // Remove any questions
-        summary = summary.replace(/[^.!]*\?[^.!]*/g, '').trim();
-        summary = summary.replace(/\s+(what|which|how|why|when|where|who|would|could|should|can|will|do|did|does|are|is|was|were)\s+[^.!?]*\?/gi, '').trim();
-        summary = summary.replace(/\?/g, '.').trim();
-        summary = summary.replace(/\s+/g, ' ').trim();
-        
-        return summary;
+        return data.response || 'Unable to generate summary';
       } else {
         throw new Error(data.error || 'Failed to generate summary');
       }
@@ -264,20 +237,11 @@ Conclusive Summary (statements only, no questions):`;
       setMessages([summaryMessage]);
       setIsLoading(false);
       
-      // Save chat history
+      // Save chat history (optional - implement if needed)
       try {
-        await fetch('http://localhost:3002/api/save-chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            messages: conversationToSummarize,
-            summary: conversationSummary,
-            dateTime: now.toISOString(),
-          }),
-        });
-        console.log('Chat history saved successfully');
+        // TODO: Implement chat history saving if needed
+        // await fetch('/api/save-chat', { ... });
+        console.log('Chat history ready to be saved');
       } catch (saveError) {
         console.error('Error saving chat history:', saveError);
       }
@@ -300,53 +264,36 @@ Conclusive Summary (statements only, no questions):`;
   const renderMessage = (message: Message) => {
     if (message.role === 'pending-selection') {
       return (
-        <div key={message.id} className="message-assistant">
-          <div className="avatar avatar-assistant">AI</div>
-          <div style={{ maxWidth: '85%', width: '100%' }}>
-            {message.originalResponse && (
-              <div style={{ marginBottom: '24px' }}>
-                <div className="message-content" style={{ whiteSpace: 'pre-wrap', marginBottom: '16px' }}>
-                  {message.originalResponse.split('**').map((part, i) => 
-                    i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div style={{ marginBottom: '12px', color: '#565869', fontSize: '13px', fontWeight: '500' }}>
-              Choose your preferred talking style:
+        <div key={message.id} style={{ width: '100%' }}>
+          <div style={{ 
+            color: '#565869', 
+            fontSize: '13px', 
+            fontWeight: '500',
+            paddingLeft: '52px',
+            marginBottom: '16px'
+          }}>
+            Choose a response:
+          </div>
+          
+          {/* Response 1 - Rational */}
+          <div className="message-assistant style-response-bubble" onClick={() => selectStyle('rational')}>
+            <div className="avatar avatar-assistant">AI</div>
+            <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer', position: 'relative' }}>
+              <div className="response-label">Response 1</div>
+              {message.rationalResponse && message.rationalResponse.split('**').map((part, i) => 
+                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+              )}
             </div>
-            <div className="style-selection-container">
-              <div className="style-response-card">
-                <div className="style-badge rational">🧠 Rational</div>
-                <div className="style-header">
-                  <span>Response 1</span>
-                </div>
-                <div className="style-content">
-                  {message.rationalResponse}
-                </div>
-                <button 
-                  className="select-style-button"
-                  onClick={() => selectStyle('rational')}
-                >
-                  Choose This Style
-                </button>
-              </div>
-              <div className="style-response-card">
-                <div className="style-badge emotional">❤️ Emotional</div>
-                <div className="style-header">
-                  <span>Response 2</span>
-                </div>
-                <div className="style-content">
-                  {message.emotionalResponse}
-                </div>
-                <button 
-                  className="select-style-button"
-                  onClick={() => selectStyle('emotional')}
-                >
-                  Choose This Style
-                </button>
-              </div>
+          </div>
+
+          {/* Response 2 - Emotional */}
+          <div className="message-assistant style-response-bubble" onClick={() => selectStyle('emotional')}>
+            <div className="avatar avatar-assistant">AI</div>
+            <div className="message-content" style={{ whiteSpace: 'pre-wrap', cursor: 'pointer', position: 'relative' }}>
+              <div className="response-label">Response 2</div>
+              {message.emotionalResponse && message.emotionalResponse.split('**').map((part, i) => 
+                i % 2 === 1 ? <strong key={i}>{part}</strong> : part
+              )}
             </div>
           </div>
         </div>
@@ -464,82 +411,34 @@ Conclusive Summary (statements only, no questions):`;
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
-        .style-selection-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin: 12px 0;
+        .style-response-bubble {
+          margin-bottom: 12px;
+          transition: all 0.2s ease;
         }
 
-        .style-response-card {
-          border: 2px solid #e5e5e6;
-          border-radius: 10px;
-          padding: 14px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.3s;
-          position: relative;
+        .style-response-bubble:hover {
+          transform: translateX(4px);
         }
 
-        .style-response-card:hover {
+        .style-response-bubble:hover .message-content {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           border-color: #10a37f;
-          box-shadow: 0 4px 12px rgba(16, 163, 127, 0.15);
         }
 
-        .style-header {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-bottom: 10px;
-          font-weight: 600;
-          font-size: 14px;
-          color: #202123;
+        .style-response-bubble .message-content {
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
         }
 
-        .style-content {
-          color: #353740;
-          line-height: 1.5;
-          font-size: 12px;
-          white-space: pre-wrap;
-          margin-bottom: 10px;
-        }
-
-        .select-style-button {
-          width: 100%;
-          padding: 8px;
-          background: #10a37f;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .select-style-button:hover {
-          background: #0d8f6e;
-        }
-
-        .style-badge {
+        .response-label {
           position: absolute;
-          top: 10px;
-          right: 10px;
-          padding: 3px 6px;
-          border-radius: 4px;
-          font-size: 10px;
+          top: -20px;
+          left: 0;
+          font-size: 11px;
           font-weight: 600;
+          color: #8e8ea0;
           text-transform: uppercase;
-        }
-
-        .style-badge.rational {
-          background: #e3f2fd;
-          color: #1976d2;
-        }
-
-        .style-badge.emotional {
-          background: #fce4ec;
-          color: #c2185b;
+          letter-spacing: 0.5px;
         }
 
         .loading-dots {
@@ -570,12 +469,6 @@ Conclusive Summary (statements only, no questions):`;
           }
           40% {
             transform: scale(1);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .style-selection-container {
-            grid-template-columns: 1fr;
           }
         }
       `}</style>
