@@ -27,6 +27,15 @@ interface MongoSummary {
   sessionId: string;
 }
 
+interface MemoryData {
+  date: string;
+  datetime: string;
+  title: string;
+  logline: string;
+  aiSummary: string;
+  dayOfWeek: string;
+}
+
 export default function Catroom() {
   const [showInstruction, setShowInstruction] = useState(true);
   const [showCloud, setShowCloud] = useState(false);
@@ -38,7 +47,8 @@ export default function Catroom() {
   const [isDayMode, setIsDayMode] = useState(false);
   const [firstSummary, setFirstSummary] = useState<SummaryData | null>(null);
   const [secondSummary, setSecondSummary] = useState<SummaryData | null>(null);
-  const [hasMultipleSummaries, setHasMultipleSummaries] = useState(false);
+  const [memoryData, setMemoryData] = useState<MemoryData | null>(null);
+  const [hasMemories, setHasMemories] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -66,53 +76,63 @@ export default function Catroom() {
     console.log("🔍 Fetching summaries from MongoDB...");
 
     try {
-      // Fetch the 2 most recent summaries
-      const response = await fetch(
-        "/api/chat-summaries?userId=default&limit=2"
+      // Fetch specific record for first page (date: 2025-11-01) - without userId filter
+      console.log("🌐 Fetching summary for 2025-11-01...");
+      const firstPageResponse = await fetch(
+        "/api/chat-summaries?date=2025-11-01"
       );
-
-      console.log("📡 Response status:", response.status, response.statusText);
-
-      // Try to parse response even if not ok
-      let data;
-      try {
-        data = await response.json();
-        console.log("📦 API Response:", data);
-      } catch (parseError) {
-        console.error("❌ Failed to parse response:", parseError);
-        setLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        console.error("❌ API Error:", data.error || "Unknown error");
-        console.error("Full error details:", data);
-        setLoading(false);
-        return;
-      }
-
-      if (data.success && data.summaries && data.summaries.length > 0) {
-        const summaries = data.summaries;
-        console.log(`✅ Found ${summaries.length} summaries`);
-
-        if (summaries.length >= 2) {
-          setFirstSummary(parseSummary(summaries[1])); // Older one
-          setSecondSummary(parseSummary(summaries[0])); // Newest one
-          setHasMultipleSummaries(true);
-          console.log("📖 Two summaries available - second page unlocked!");
-        } else {
-          // User has only 1 summary - only first page available
-          setFirstSummary(parseSummary(summaries[0]));
-          setSecondSummary(null);
-          setHasMultipleSummaries(false);
-          console.log("📖 Only one summary - second page locked");
-        }
-
-        setLoading(false);
+      const firstPageData = await firstPageResponse.json();
+      
+      if (firstPageData.success && firstPageData.summaries && firstPageData.summaries.length > 0) {
+        const firstSummaryRecord = firstPageData.summaries[0];
+        setFirstSummary(parseSummary(firstSummaryRecord));
+        console.log(`📖 First page loaded: ${firstSummaryRecord.date} (userId: ${firstSummaryRecord.userId})`);
       } else {
-        console.log("⚠️ No summaries found in database");
-        setLoading(false);
+        console.log("⚠️ No summary found for 2025-11-01");
       }
+
+      // Fetch specific record for second page (date: 2025-11-02) - without userId filter
+      console.log("🌐 Fetching summary for 2025-11-02...");
+      const secondPageResponse = await fetch(
+        "/api/chat-summaries?date=2025-11-02"
+      );
+      const secondPageData = await secondPageResponse.json();
+      
+      if (secondPageData.success && secondPageData.summaries && secondPageData.summaries.length > 0) {
+        const secondSummaryRecord = secondPageData.summaries[0];
+        setSecondSummary(parseSummary(secondSummaryRecord));
+        console.log(`📖 Second page loaded: ${secondSummaryRecord.date}`);
+      } else {
+        console.log("⚠️ No summary found for 2025-11-02, using first page summary for second page");
+        // If no 2025-11-02 summary exists, reuse the first page summary so the second page can still display
+        if (firstPageData.success && firstPageData.summaries && firstPageData.summaries.length > 0) {
+          setSecondSummary(parseSummary(firstPageData.summaries[0]));
+          console.log(`📖 Second page will show: ${firstPageData.summaries[0].date}`);
+        }
+      }
+
+      // Check memory count to determine if second page should be unlocked
+      console.log("🌐 Making fetch request to /api/memories...");
+      const memoriesResponse = await fetch("/api/memories?userId=default&limit=100");
+      console.log("📡 Memories API Response status:", memoriesResponse.status);
+      const memoriesData = await memoriesResponse.json();
+      console.log("📦 Memories API Response data:", memoriesData);
+      
+      // Count ALL memories in the database collection (not filtered by userId)
+      const totalMemoryCount = memoriesData.totalInDatabase || 0;
+      console.log(`📊 Total memories in MongoDB 'memories' collection: ${totalMemoryCount}`);
+      console.log(`🔍 Memories for userId="default": ${memoriesData.count || 0}`);
+      
+      // Unlock second page if MORE than 1 memory exists in the entire collection
+      if (memoriesData.success && totalMemoryCount > 1) {
+        setHasMemories(true);
+        console.log(`✅ ${totalMemoryCount} memories in collection - second page unlocked!`);
+      } else {
+        setHasMemories(false);
+        console.log(`📖 Only ${totalMemoryCount} memory/memories - second page locked`);
+      }
+
+      setLoading(false);
     } catch (error) {
       console.error("❌ Error fetching summaries:", error);
       setLoading(false);
@@ -132,7 +152,7 @@ export default function Catroom() {
     }
   }, [showBookshelf, fetchSummaries]);
 
-  // Page data - dynamically build based on available summaries
+  // Page data - dynamically build based on available summaries and memories
   const pages = [
     {
       image: "/first.png",
@@ -144,18 +164,25 @@ export default function Catroom() {
       date: firstSummary?.datetime || "",
       dayOfWeek: firstSummary?.dayOfWeek || "",
     },
-    // Only include second page if user has multiple summaries
-    ...(hasMultipleSummaries && secondSummary
+    // Only include second page if memories exist (memory count > 1)
+    ...(hasMemories && secondSummary
       ? [
           {
             image: "/second.png",
-            text: secondSummary.summary,
+            text: loading
+              ? "Loading your newest summary..."
+              : secondSummary.summary,
             date: secondSummary.datetime,
             dayOfWeek: secondSummary.dayOfWeek,
           },
         ]
       : []),
   ];
+  
+  // Debug logging
+  console.log(`📚 Pages array length: ${pages.length}`);
+  console.log(`🔓 hasMemories: ${hasMemories}`);
+  console.log(`📄 secondSummary exists: ${!!secondSummary}`);
 
   const handleBookClick = () => {
     if (!bookOpened) {

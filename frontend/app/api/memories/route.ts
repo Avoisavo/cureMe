@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MongoClient, Db } from "mongodb";
 import { generateMemoryForDate, Memory } from "@/utils/memoryGenerator";
-import { generateImagesForMemory } from "@/utils/panelImageGeneration";
+// Lazy import for image generation to avoid OpenAI initialization
+// import { generateImagesForMemory } from "@/utils/panelImageGeneration";
 
 let cachedClient: MongoClient | null = null;
 let cachedDb: Db | null = null;
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       chatMessages = [],
       userId = "default",
       options = {},
+      generateImages = false, // Add flag to control image generation
     } = body;
 
     // Validate required fields
@@ -104,72 +106,90 @@ export async function POST(request: NextRequest) {
       console.log(`✨ Created new memory for ${date}`);
     }
 
-    // After memory is stored, automatically generate panel images
-    try {
-      console.log(`🎨 Auto-generating panel images for ${date}...`);
+    // Only generate panel images if explicitly requested
+    if (generateImages) {
+      try {
+        console.log(`🎨 Auto-generating panel images for ${date}...`);
 
-      const panelResults = await generateImagesForMemory(
-        date,
-        memory.panels,
-        memory.mood.primary,
-        {
-          quality: "standard",
-          size: "1024x1024",
-          saveLocally: true,
-          localPath: "./public/generated-panels",
-        }
-      );
+        // Dynamically import to avoid OpenAI initialization unless needed
+        const { generateImagesForMemory } = await import("@/utils/panelImageGeneration");
 
-      // Update memory with generated image URLs
-      const updatedPanels = memory.panels.map((panel, index) => {
-        const result = panelResults.find((r) => r.panelId === panel.id);
-        return {
-          ...panel,
-          imgUrl: result?.imageUrl || panel.imgUrl,
-        };
-      });
+        const panelResults = await generateImagesForMemory(
+          date,
+          memory.panels,
+          memory.mood.primary,
+          {
+            quality: "standard",
+            size: "1024x1024",
+            saveLocally: true,
+            localPath: "./public/generated-panels",
+          }
+        );
 
-      // Update in database
-      await collection.updateOne(
-        { date, userId },
-        {
-          $set: {
+        // Update memory with generated image URLs
+        const updatedPanels = memory.panels.map((panel, index) => {
+          const result = panelResults.find((r) => r.panelId === panel.id);
+          return {
+            ...panel,
+            imgUrl: result?.imageUrl || panel.imgUrl,
+          };
+        });
+
+        // Update in database
+        await collection.updateOne(
+          { date, userId },
+          {
+            $set: {
+              panels: updatedPanels,
+              updatedAt: new Date(),
+            },
+          }
+        );
+
+        console.log(`✅ Panel images generated and stored for ${date}`);
+
+        // Return updated memory with images
+        return NextResponse.json({
+          success: true,
+          memory: {
+            ...memory,
             panels: updatedPanels,
-            updatedAt: new Date(),
           },
-        }
-      );
-
-      console.log(`✅ Panel images generated and stored for ${date}`);
-
-      // Return updated memory with images
-      return NextResponse.json({
-        success: true,
-        memory: {
-          ...memory,
-          panels: updatedPanels,
-        },
-        operation: existingMemory ? "updated" : "created",
-        panelImagesGenerated: true,
-        panelResults,
-      });
-    } catch (imageError: any) {
-      console.error(
-        `⚠️ Failed to generate panel images: ${imageError.message}`
-      );
-      // Return memory anyway, images can be generated later
-      return NextResponse.json({
-        success: true,
-        memory,
-        operation: existingMemory ? "updated" : "created",
-        panelImagesGenerated: false,
-        imageGenerationError: imageError.message,
-      });
+          operation: existingMemory ? "updated" : "created",
+          panelImagesGenerated: true,
+          panelResults,
+        });
+      } catch (imageError: any) {
+        console.error(
+          `⚠️ Failed to generate panel images: ${imageError.message}`
+        );
+        // Return memory anyway, images can be generated later
+        return NextResponse.json({
+          success: true,
+          memory,
+          operation: existingMemory ? "updated" : "created",
+          panelImagesGenerated: false,
+          imageGenerationError: imageError.message,
+        });
+      }
     }
+
+    // If image generation not requested, return memory immediately
+    return NextResponse.json({
+      success: true,
+      memory,
+      operation: existingMemory ? "updated" : "created",
+      panelImagesGenerated: false,
+    });
   } catch (error: any) {
     console.error("Error storing memory:", error);
+    console.error("Error stack:", error.stack);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to store memory" },
+      { 
+        success: false, 
+        error: error.message || "Failed to store memory",
+        details: process.env.NODE_ENV === "development" ? error.stack : undefined
+      },
       { status: 500 }
     );
   }
@@ -208,6 +228,15 @@ export async function GET(request: NextRequest) {
       query["mood.primary"] = mood;
     }
 
+    // Debug: Log total memories in collection (no filter)
+    const totalMemoriesInDb = await collection.countDocuments({});
+    console.log(`🔍 Total memories in 'memories' collection: ${totalMemoriesInDb}`);
+    
+    // Debug: Log memories matching the userId filter
+    const memoriesWithUserId = await collection.countDocuments({ userId });
+    console.log(`🔍 Memories with userId="${userId}": ${memoriesWithUserId}`);
+    console.log(`🔍 Query being used:`, JSON.stringify(query));
+
     // Execute query
     const memories = await collection
       .find(query)
@@ -227,10 +256,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, memory });
     }
 
+    // Use countDocuments for accurate count (respects the query filters)
+    const totalCount = await collection.countDocuments(query);
+    
+    console.log(`📊 Returning ${memories.length} memories out of ${totalCount} total matching query`);
+
     return NextResponse.json({
       success: true,
       memories,
-      count: memories.length,
+      count: totalCount, // Use actual count from database, not just array length
+      totalInDatabase: totalMemoriesInDb, // Include total for debugging
     });
   } catch (error: any) {
     console.error("Error retrieving memories:", error);

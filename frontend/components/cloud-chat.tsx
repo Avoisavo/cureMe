@@ -488,8 +488,25 @@ export default function CloudChat({
         // Check if all saves were successful
         const allSuccess = await Promise.all(
           results.map(async (res) => {
-            const data = await res.json();
-            return data.success;
+            if (!res.ok) {
+              console.error(`Save failed with status: ${res.status}`);
+              return false;
+            }
+            
+            try {
+              const contentType = res.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                const data = await res.json();
+                return data.success;
+              } else {
+                const text = await res.text();
+                console.error("Non-JSON response:", text.substring(0, 200));
+                return false;
+              }
+            } catch (error) {
+              console.error("Error parsing response:", error);
+              return false;
+            }
           })
         );
 

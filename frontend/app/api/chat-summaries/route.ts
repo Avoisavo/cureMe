@@ -114,13 +114,17 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId") || "default";
+    const userIdParam = searchParams.get("userId");
     const sessionId = searchParams.get("sessionId");
     const date = searchParams.get("date");
     const limit = parseInt(searchParams.get("limit") || "100");
+    
+    // Only default to "default" if no userId is explicitly provided AND no date filter
+    // When querying by date without userId, we want to get all users' summaries for that date
+    const userId = userIdParam || (date ? null : "default");
 
     console.log("📥 GET request received for chat summaries");
-    console.log("👤 UserId:", userId, "Limit:", limit);
+    console.log("👤 UserId:", userId || "ALL", "Date:", date || "none", "Limit:", limit);
 
     const db = await connectToDatabase();
     const collection = db.collection<ChatSummary>("chat_summaries");
@@ -143,11 +147,16 @@ export async function GET(request: NextRequest) {
     // Get summaries for specific date
     if (date) {
       console.log("📅 Searching for date:", date);
+      // If userId is provided in query, filter by it; otherwise get all summaries for that date
+      const query: any = { date };
+      if (userId && userId !== "undefined") {
+        query.userId = userId;
+      }
       const summaries = await collection
-        .find({ date, userId })
+        .find(query)
         .sort({ datetime: -1 })
         .toArray();
-      console.log(`✅ Found ${summaries.length} summaries for date:`, date);
+      console.log(`✅ Found ${summaries.length} summaries for date:`, date, `(userId filter: ${query.userId || 'none'})`);
       return NextResponse.json({
         success: true,
         summaries,

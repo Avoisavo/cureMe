@@ -6,9 +6,22 @@ import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { Panel } from "./memoryGenerator";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid crashes when API key is not set
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        "OPENAI_API_KEY environment variable is not set. Image generation requires an OpenAI API key."
+      );
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 export interface PanelImageOptions {
   style?: "bw" | "halftone" | "colorAccent";
@@ -63,7 +76,8 @@ export async function generatePanelImage(
 
   console.log(`🎨 Generating image for ${panel.id}...`);
 
-  const response = await openai.images.generate({
+  const client = getOpenAI(); // Lazy initialization
+  const response = await client.images.generate({
     model: "dall-e-3",
     prompt: prompt,
     n: 1,

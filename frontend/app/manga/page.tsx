@@ -13,52 +13,126 @@ interface SummaryData {
   dayOfWeek: string;
 }
 
+interface MemoryData {
+  date: string;
+  datetime: string;
+  title: string;
+  logline: string;
+  aiSummary: string;
+  dayOfWeek: string;
+}
+
 export default function MangaPage() {
   const router = useRouter();
   const [splineLoaded, setSplineLoaded] = useState(false);
   const [bookOpened, setBookOpened] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [oldestSummaryData, setOldestSummaryData] = useState<SummaryData | null>(null);
+  const [newestSummaryData, setNewestSummaryData] = useState<SummaryData | null>(null);
+  const [memoryData, setMemoryData] = useState<MemoryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasMemories, setHasMemories] = useState(false);
 
-  // Fetch latest summary from MongoDB
+  // Fetch summaries and check for memories
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(
-          "/api/chat-summaries?userId=default&limit=1"
+        // Fetch summaries (get more to find oldest and newest)
+        const summaryResponse = await fetch(
+          "/api/chat-summaries?userId=default&limit=100"
         );
-        const data = await response.json();
+        const summaryData = await summaryResponse.json();
 
-        if (data.success && data.summaries && data.summaries.length > 0) {
-          const latestSummary = data.summaries[0];
-
-          // Parse the date field (YYYY-MM-DD format) to get the day of week
-          // Use the date field, NOT datetime, as specified by user
-          const dateObj = new Date(latestSummary.date + "T00:00:00");
-          const dayOfWeek = dateObj.toLocaleDateString("en-US", {
+        if (summaryData.success && summaryData.summaries && summaryData.summaries.length > 0) {
+          const summaries = summaryData.summaries;
+          
+          // Oldest summary (last in array since sorted by datetime DESC)
+          const oldestSummary = summaries[summaries.length - 1];
+          const oldestDateObj = new Date(oldestSummary.date + "T00:00:00");
+          const oldestDayOfWeek = oldestDateObj.toLocaleDateString("en-US", {
             weekday: "long",
           });
 
-          setSummaryData({
-            date: latestSummary.date,
-            datetime: dateObj.toLocaleDateString("en-US", {
+          setOldestSummaryData({
+            date: oldestSummary.date,
+            datetime: oldestDateObj.toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
             }),
-            summary: latestSummary.summary,
-            dayOfWeek: dayOfWeek,
+            summary: oldestSummary.summary,
+            dayOfWeek: oldestDayOfWeek,
+          });
+          
+          // Newest summary (first in array)
+          const newestSummary = summaries[0];
+          const newestDateObj = new Date(newestSummary.date + "T00:00:00");
+          const newestDayOfWeek = newestDateObj.toLocaleDateString("en-US", {
+            weekday: "long",
+          });
+
+          setNewestSummaryData({
+            date: newestSummary.date,
+            datetime: newestDateObj.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            summary: newestSummary.summary,
+            dayOfWeek: newestDayOfWeek,
           });
         }
+
+        // Check if memories exist and fetch latest memory
+        const memoriesResponse = await fetch("/api/memories?userId=default&limit=100");
+        const memoriesData = await memoriesResponse.json();
+        
+        // Use totalInDatabase to count ALL memories in collection (not filtered by userId)
+        const totalMemoryCount = memoriesData.totalInDatabase || 0;
+        console.log(`📊 Total memories in MongoDB 'memories' collection: ${totalMemoryCount}`);
+        console.log(`🔍 Memories for userId="default": ${memoriesData.count || 0}`);
+        console.log(`📦 Memories API Response:`, memoriesData);
+        
+        // Unlock second page only if MORE than 1 memory in the entire collection (i.e., 2 or more)
+        if (memoriesData.success && totalMemoryCount > 1) {
+          setHasMemories(true);
+          
+          // Try to get latest memory data if available
+          if (memoriesData.memories && memoriesData.memories.length > 0) {
+            const latestMemory = memoriesData.memories[0];
+            
+            // Parse date for day of week
+            const memoryDateObj = new Date(latestMemory.date + "T00:00:00");
+            const memoryDayOfWeek = memoryDateObj.toLocaleDateString("en-US", {
+              weekday: "long",
+            });
+
+            setMemoryData({
+              date: latestMemory.date,
+              datetime: memoryDateObj.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              }),
+              title: latestMemory.title || "Memory",
+              logline: latestMemory.logline || "",
+              aiSummary: latestMemory.aiSummary || "No summary available.",
+              dayOfWeek: memoryDayOfWeek,
+            });
+          }
+          
+          console.log(`✅ ${totalMemoryCount} memories in collection! Second page unlocked.`);
+        } else {
+          console.log(`📖 Only ${totalMemoryCount} memory/memories - second page locked`);
+        }
       } catch (error) {
-        console.error("Error fetching summary:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSummary();
+    fetchData();
   }, []);
 
   // Page data
@@ -66,18 +140,22 @@ export default function MangaPage() {
     {
       image: "/first.png",
       text: loading
-        ? "Loading your summary..."
-        : summaryData
-        ? summaryData.summary
+        ? "Loading your oldest summary..."
+        : oldestSummaryData
+        ? oldestSummaryData.summary
         : "No summary available yet. Chat with the AI to create your first summary!",
-      date: summaryData?.datetime || "",
-      dayOfWeek: summaryData?.dayOfWeek || "",
+      date: oldestSummaryData?.datetime || "",
+      dayOfWeek: oldestSummaryData?.dayOfWeek || "",
     },
     {
       image: "/second.png",
-      text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
-      date: "",
-      dayOfWeek: "",
+      text: loading
+        ? "Loading your newest summary..."
+        : newestSummaryData
+        ? newestSummaryData.summary
+        : "No new summary available yet. Complete a chat session to generate more summaries!",
+      date: newestSummaryData?.datetime || "",
+      dayOfWeek: newestSummaryData?.dayOfWeek || "",
     },
   ];
 
@@ -104,6 +182,30 @@ export default function MangaPage() {
   const handleBookClick = () => {
     if (!bookOpened) {
       setBookOpened(true);
+      setCurrentPage(0); // Start at first page
+    }
+  };
+
+  // Handle left page click - go to previous page or close book
+  const handleLeftPageClick = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    } else {
+      // At first page, close the book
+      setBookOpened(false);
+    }
+  };
+
+  // Handle right page click - go to next page or close book
+  const handleRightPageClick = () => {
+    const maxPage = hasMemories ? 1 : 0; // Page 1 only available if memories exist
+    
+    if (currentPage < maxPage) {
+      setCurrentPage(currentPage + 1);
+    } else {
+      // At last available page, close the book
+      setBookOpened(false);
+      setCurrentPage(0); // Reset to first page for next open
     }
   };
 
@@ -179,6 +281,8 @@ export default function MangaPage() {
               rightPageDayOfWeek={pages[currentPage].dayOfWeek}
               opened={bookOpened}
               onBookClick={handleBookClick}
+              onLeftPageClick={handleLeftPageClick}
+              onRightPageClick={handleRightPageClick}
             />
           </Suspense>
         </Canvas>
@@ -203,6 +307,34 @@ export default function MangaPage() {
             }}
           >
             📖 Click the book to open
+          </div>
+        )}
+
+        {/* Navigation hint when book is open */}
+        {bookOpened && (
+          <div
+            style={{
+              position: "absolute",
+              bottom: "15%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "500",
+              textShadow: "0 2px 8px rgba(0, 0, 0, 0.8)",
+              pointerEvents: "none",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              padding: "10px 20px",
+              borderRadius: "10px",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              gap: "20px",
+              alignItems: "center",
+            }}
+          >
+            <span>← Click left to go back</span>
+            <span>|</span>
+            <span>Click right to advance →</span>
           </div>
         )}
       </div>

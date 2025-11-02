@@ -436,7 +436,7 @@ function generatePanels(
         analysis.primaryEmotion
       } emotions`,
       style: "bw", // Black and white manga style
-      imgUrl: undefined, // To be populated by image generation
+      imgUrl: "/second.png", // Default placeholder image
     });
   }
 
@@ -497,8 +497,11 @@ function generateContentWarnings(analysis: Analysis): string[] {
  */
 function applySafetyPass(memory: Memory, sensitivity: string): Memory {
   // For high sensitivity, add more content warnings
-  if (sensitivity === "high" && memory.contentWarnings.length === 0) {
+  if (sensitivity === "high" && (!memory.contentWarnings || memory.contentWarnings.length === 0)) {
     if (memory.mood.valence < -0.5) {
+      if (!memory.contentWarnings) {
+        memory.contentWarnings = [];
+      }
       memory.contentWarnings.push("Contains emotional content");
     }
   }
