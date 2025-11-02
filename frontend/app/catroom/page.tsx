@@ -8,7 +8,7 @@ import Cloud from "@/components/cloud";
 import Bookshelf from "@/components/Bookshelf";
 import { MangaBook3D } from "@/components/MangaBook3D";
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface SummaryData {
@@ -16,6 +16,14 @@ interface SummaryData {
   datetime: string;
   summary: string;
   dayOfWeek: string;
+}
+
+interface MongoSummary {
+  date: string;
+  datetime: Date;
+  summary: string;
+  userId: string;
+  sessionId: string;
 }
 
 export default function Catroom() {
@@ -26,101 +34,125 @@ export default function Catroom() {
   const [currentPage, setCurrentPage] = useState(0);
   const [bookOpened, setBookOpened] = useState(false);
   const [isDayMode, setIsDayMode] = useState(false);
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [firstSummary, setFirstSummary] = useState<SummaryData | null>(null);
+  const [secondSummary, setSecondSummary] = useState<SummaryData | null>(null);
+  const [hasMultipleSummaries, setHasMultipleSummaries] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Fetch latest summary from MongoDB - runs immediately when component mounts
-  useEffect(() => {
-    const fetchSummary = async () => {
-      console.log("🔍 Fetching summary from MongoDB...");
+  // Helper function to parse summary data
+  const parseSummary = (summary: MongoSummary): SummaryData => {
+    const dateObj = new Date(summary.date + "T00:00:00");
+    const dayOfWeek = dateObj.toLocaleDateString("en-US", {
+      weekday: "long",
+    });
 
+    return {
+      date: summary.date,
+      datetime: dateObj.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      summary: summary.summary,
+      dayOfWeek: dayOfWeek,
+    };
+  };
+
+  // Fetch summaries from MongoDB
+  const fetchSummaries = useCallback(async () => {
+    console.log("🔍 Fetching summaries from MongoDB...");
+
+    try {
+      // Fetch the 2 most recent summaries
+      const response = await fetch(
+        "/api/chat-summaries?userId=default&limit=2"
+      );
+
+      console.log("📡 Response status:", response.status, response.statusText);
+
+      // Try to parse response even if not ok
+      let data;
       try {
-        const response = await fetch(
-          "/api/chat-summaries?userId=default&limit=1"
-        );
+        data = await response.json();
+        console.log("📦 API Response:", data);
+      } catch (parseError) {
+        console.error("❌ Failed to parse response:", parseError);
+        setLoading(false);
+        return;
+      }
 
-        console.log(
-          "📡 Response status:",
-          response.status,
-          response.statusText
-        );
+      if (!response.ok) {
+        console.error("❌ API Error:", data.error || "Unknown error");
+        console.error("Full error details:", data);
+        setLoading(false);
+        return;
+      }
 
-        // Try to parse response even if not ok
-        let data;
-        try {
-          data = await response.json();
-          console.log("📦 API Response:", data);
-        } catch (parseError) {
-          console.error("❌ Failed to parse response:", parseError);
-          setLoading(false);
-          return;
-        }
+      if (data.success && data.summaries && data.summaries.length > 0) {
+        const summaries = data.summaries;
+        console.log(`✅ Found ${summaries.length} summaries`);
 
-        if (!response.ok) {
-          console.error("❌ API Error:", data.error || "Unknown error");
-          console.error("Full error details:", data);
-          setLoading(false);
-          return;
-        }
-
-        if (data.success && data.summaries && data.summaries.length > 0) {
-          const latestSummary = data.summaries[0];
-          console.log("✅ Latest summary found:", latestSummary);
-
-          // Parse the date field (YYYY-MM-DD format) to get the day of week
-          // Use the date field, NOT datetime, as specified by user
-          const dateObj = new Date(latestSummary.date + "T00:00:00");
-          const dayOfWeek = dateObj.toLocaleDateString("en-US", {
-            weekday: "long",
-          });
-
-          const summaryInfo = {
-            date: latestSummary.date,
-            datetime: dateObj.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            }),
-            summary: latestSummary.summary,
-            dayOfWeek: dayOfWeek,
-          };
-
-          console.log("📝 Setting summary data:", summaryInfo);
-          setSummaryData(summaryInfo);
-          setLoading(false);
+        if (summaries.length >= 2) {
+          setFirstSummary(parseSummary(summaries[1])); // Older one
+          setSecondSummary(parseSummary(summaries[0])); // Newest one
+          setHasMultipleSummaries(true);
+          console.log("📖 Two summaries available - second page unlocked!");
         } else {
-          console.log("⚠️ No summaries found in database");
-          setLoading(false);
+          // User has only 1 summary - only first page available
+          setFirstSummary(parseSummary(summaries[0]));
+          setSecondSummary(null);
+          setHasMultipleSummaries(false);
+          console.log("📖 Only one summary - second page locked");
         }
-      } catch (error) {
-        console.error("❌ Error fetching summary:", error);
+
+        setLoading(false);
+      } else {
+        console.log("⚠️ No summaries found in database");
         setLoading(false);
       }
-    };
-
-    // Fetch immediately on component mount
-    fetchSummary();
+    } catch (error) {
+      console.error("❌ Error fetching summaries:", error);
+      setLoading(false);
+    }
   }, []);
 
-  // Page data
+  // Fetch summaries on component mount
+  useEffect(() => {
+    fetchSummaries();
+  }, [fetchSummaries]);
+
+  // Refetch summaries when bookshelf is opened (in case user created new summaries)
+  useEffect(() => {
+    if (showBookshelf) {
+      console.log("📚 Bookshelf opened - refreshing summaries...");
+      fetchSummaries();
+    }
+  }, [showBookshelf, fetchSummaries]);
+
+  // Page data - dynamically build based on available summaries
   const pages = [
     {
       image: "/first.png",
       text: loading
         ? "Loading your summary..."
-        : summaryData
-        ? summaryData.summary
+        : firstSummary
+        ? firstSummary.summary
         : "No summary available yet. Chat with the AI to create your first summary!",
-      date: summaryData?.datetime || "",
-      dayOfWeek: summaryData?.dayOfWeek || "",
+      date: firstSummary?.datetime || "",
+      dayOfWeek: firstSummary?.dayOfWeek || "",
     },
-    {
-      image: "/second.png",
-      text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
-      date: "",
-      dayOfWeek: "",
-    },
+    // Only include second page if user has multiple summaries
+    ...(hasMultipleSummaries && secondSummary
+      ? [
+          {
+            image: "/second.png",
+            text: secondSummary.summary,
+            date: secondSummary.datetime,
+            dayOfWeek: secondSummary.dayOfWeek,
+          },
+        ]
+      : []),
   ];
 
   const handleBookClick = () => {
@@ -132,6 +164,7 @@ export default function Catroom() {
 
   const handleLeftPageClick = () => {
     if (currentPage === 0) {
+      // On first page, going left closes the book
       setBookOpened(false);
       setCurrentPage(0);
       return;
@@ -142,11 +175,15 @@ export default function Catroom() {
   };
 
   const handleRightPageClick = () => {
+    // Check if this is the last available page
     if (currentPage === pages.length - 1) {
+      // On last page, going right closes the book
       setBookOpened(false);
       setCurrentPage(0);
       return;
     }
+
+    // Only allow going to next page if it exists
     if (currentPage < pages.length - 1) {
       setCurrentPage(currentPage + 1);
     }
