@@ -17,8 +17,6 @@ Cultural and Social Barriers: Deep-rooted cultural stigma—such as the need to 
 Economic and Systemic Challenges: In regions with underfunded health services and uneven access between urban and rural areas, even those who want help may not be able to receive it in a timely, confidential manner.
 Understanding these challenges, we were inspired to create a mental healthcare assistant that preserves the user's privacy while delivering personalized, effective support tailored to the unique cultural context of many Asian communities.
 
-## Problem Statement
-Many individuals experiencing emotional or mental-health challenges hesitate to seek support due to social stigma. Meanwhile, expressing vulnerability seems to be a sign of weakness, leading them to hide their struggles rather than reach out for help. Many people stay silent because they are afraid of being judged. So, they avoid traditional counselling even when they need support. As a result, individuals across different ages and life stages often manage their emotional burdens in silence.
 
 ## The Problem🚧
 
