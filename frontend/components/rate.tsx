@@ -117,16 +117,6 @@ export default function Rate({ onClose }: RateProps) {
                 <span>😢 Sad</span>
                 <span>😊 Happy</span>
               </div>
-              {selectedMood && (
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-pink-600 font-semibold animate-pulse">
-                    {selectedMood <= 3 && "I'm here for you! Let's chat 💜"}
-                    {selectedMood > 3 && selectedMood <= 6 && "I'll help you feel better! 🌸"}
-                    {selectedMood > 6 && selectedMood <= 8 && "Great to see you! 😸"}
-                    {selectedMood > 8 && "You're amazing! Let's have fun! 🎉"}
-                  </p>
-                </div>
-              )}
             </div>
 
             {/* Submit button */}

@@ -119,12 +119,14 @@ export default function ChatMePage() {
             100% 100%, 
             0% 100%
           );
-          line-height: 1.6;
-          font-size: 14px;
+          line-height: 1.8;
+          font-size: 12px;
           white-space: pre-wrap;
           word-wrap: break-word;
           position: relative;
           transition: all 0.3s ease;
+          font-family: var(--font-press-start), monospace;
+          letter-spacing: 0.02em;
         }
 
         .chatme-page .message-user .message-content {
@@ -177,17 +179,17 @@ export default function ChatMePage() {
         }
 
         .chatme-page .response-label-header {
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
           color: #6366f1;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.05em;
           text-align: center;
           padding: 10px 16px;
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
           border-radius: 12px;
           border: 2px solid rgba(99, 102, 241, 0.3);
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-press-start), monospace;
         }
 
         .chatme-page .style-response-bubble-left,

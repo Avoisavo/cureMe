@@ -140,7 +140,18 @@ export default function Header() {
                   className="flex items-center gap-2 px-5 py-2 rounded-full font-medium bg-gradient-to-r from-fuchsia-500 via-purple-500 to-violet-500 text-white shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:from-fuchsia-600 hover:via-purple-600 hover:to-violet-600 transition-all duration-300 hover:scale-105"
                 >
                   <span className="text-lg">🔐</span>
-                  <span className="text-base">Log In</span>
+                  <span 
+                    className="font-bold"
+                    style={{
+                      fontFamily: 'var(--font-press-start), monospace',
+                      fontSize: '0.7rem',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      textShadow: '2px 2px 0px rgba(0, 0, 0, 0.2), 0 0 15px rgba(255, 255, 255, 0.6)',
+                    }}
+                  >
+                    Log In
+                  </span>
                 </button>
               ) : (
                 <div className="flex items-center gap-3">
@@ -155,7 +166,15 @@ export default function Header() {
                         className="rounded-full border-2 border-white shadow-sm"
                       />
                     )}
-                    <span className="text-base font-medium bg-gradient-to-r from-violet-700 to-purple-700 bg-clip-text text-transparent">
+                    <span 
+                      className="font-bold bg-gradient-to-r from-violet-700 to-purple-700 bg-clip-text text-transparent"
+                      style={{
+                        fontFamily: 'var(--font-press-start), monospace',
+                        fontSize: '0.65rem',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
                       {userData?.name?.split(' ')[0] || 'User'}
                     </span>
                   </div>
@@ -166,7 +185,17 @@ export default function Header() {
                     className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 border border-gray-300 hover:border-gray-400 transition-all duration-300 hover:scale-105"
                   >
                     <span className="text-lg">👋</span>
-                    <span className="text-base">Log Out</span>
+                    <span 
+                      className="font-bold"
+                      style={{
+                        fontFamily: 'var(--font-press-start), monospace',
+                        fontSize: '0.7rem',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Log Out
+                    </span>
                   </button>
                 </div>
               )}

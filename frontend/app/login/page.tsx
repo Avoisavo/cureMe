@@ -55,7 +55,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome to CureMe
+              Welcome to PsyCatrist Time
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Sign in with your Gmail account to continue
@@ -148,7 +148,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          © 2025 CureMe. All rights reserved.
+          © 2025 PsyCatrist Time. All rights reserved.
         </p>
       </div>
     </div>

@@ -171,7 +171,7 @@ export default function Cloud({
             lineHeight: '1.6',
             textShadow: '1px 1px 2px rgba(167, 139, 250, 0.1)'
           }}>
-            Hi! Tell Meow your problem! &gt;&lt;
+            Hi! Tell Meow your day! &gt;&lt;
           </p>
         </div>
 

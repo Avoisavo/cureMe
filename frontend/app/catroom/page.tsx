@@ -5,6 +5,7 @@ import Header from "@/components/header";
 import ChatPanelWrapper from "@/components/chat-panel";
 import Instruction from "@/components/instruction";
 import Cloud from "@/components/cloud";
+import Rate from "@/components/rate";
 import Bookshelf from "@/components/Bookshelf";
 import { MangaBook3D } from "@/components/MangaBook3D";
 import { Canvas } from "@react-three/fiber";
@@ -16,6 +17,7 @@ export default function Catroom() {
   const [showCloud, setShowCloud] = useState(false);
   const [showBookshelf, setShowBookshelf] = useState(false);
   const [showManga, setShowManga] = useState(false);
+  const [showRate, setShowRate] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [bookOpened, setBookOpened] = useState(false);
   const [isDayMode, setIsDayMode] = useState(false);
@@ -74,7 +76,7 @@ export default function Catroom() {
     }
   };
 
-  // Listen for "1", "2", "3" and "4" key press
+  // Listen for "1", "2", "3", "4", "5" key press
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === "1") {
@@ -85,6 +87,8 @@ export default function Catroom() {
         setShowBookshelf(true);
       } else if (e.key === "4") {
         router.push("/chatme");
+      } else if (e.key === "5") {
+        setShowRate(true);
       } else if (e.key === "Escape") {
         // ESC key closes any open modal
         if (showManga) {
@@ -93,13 +97,15 @@ export default function Catroom() {
           setShowBookshelf(false);
         } else if (showCloud) {
           setShowCloud(false);
+        } else if (showRate) {
+          setShowRate(false);
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [router, showManga, showBookshelf, showCloud]);
+  }, [router, showManga, showBookshelf, showCloud, showRate]);
 
   // Ensure the 3D book starts closed each time the modal opens
   useEffect(() => {
@@ -733,6 +739,9 @@ export default function Catroom() {
             </svg>
           </button>
         </div>
+      )}
+      {showRate && (
+        <Rate onClose={() => setShowRate(false)} />
       )}
     </>
   );

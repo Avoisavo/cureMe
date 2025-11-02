@@ -567,15 +567,20 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         }
 
         .empty-state h2 {
-          font-size: 20px;
+          font-size: 16px;
           font-weight: 600;
           color: #202123;
           margin-bottom: 8px;
+          font-family: var(--font-press-start), monospace;
+          letter-spacing: 0.05em;
         }
 
         .empty-state p {
-          font-size: 14px;
+          font-size: 11px;
           color: #565869;
+          font-family: var(--font-press-start), monospace;
+          letter-spacing: 0.02em;
+          line-height: 1.8;
         }
 
         .message-user, .message-assistant {
@@ -619,10 +624,12 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
           max-width: 85%;
           padding: 10px 14px;
           border-radius: 14px;
-          line-height: 1.6;
-          font-size: 13px;
+          line-height: 1.8;
+          font-size: 11px;
           white-space: pre-wrap;
           word-wrap: break-word;
+          font-family: var(--font-press-start), monospace;
+          letter-spacing: 0.02em;
         }
 
         .message-user .message-content {
@@ -654,17 +661,17 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
         }
 
         .response-label-header {
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
           color: #6366f1;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.05em;
           text-align: center;
           padding: 10px 16px;
           background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
           border-radius: 12px;
           border: 2px solid rgba(99, 102, 241, 0.3);
-          font-family: 'Courier New', monospace;
+          font-family: var(--font-press-start), monospace;
         }
 
         .style-response-bubble-left,
@@ -784,15 +791,20 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
             </div>
             <div style={{ flex: 1 }}>
               <div style={{
-                fontSize: '13px',
+                fontSize: '11px',
                 fontWeight: '600',
-                marginBottom: '2px'
+                marginBottom: '2px',
+                fontFamily: 'var(--font-press-start), monospace',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase'
               }}>
                 TEE Attestation
               </div>
               <div style={{
-                fontSize: '11px',
-                opacity: 0.9
+                fontSize: '9px',
+                opacity: 0.9,
+                fontFamily: 'var(--font-press-start), monospace',
+                letterSpacing: '0.02em'
               }}>
                 Verified secure execution
               </div>
@@ -806,8 +818,11 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
                 padding: '6px 10px',
                 color: 'white',
                 cursor: 'pointer',
-                fontSize: '11px',
+                fontSize: '9px',
                 fontWeight: '500',
+                fontFamily: 'var(--font-press-start), monospace',
+                letterSpacing: '0.05em',
+                textTransform: 'uppercase',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -835,8 +850,8 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
                 <div className="loading-dot"></div>
                 <div className="loading-dot"></div>
               </div>
-              <p style={{ marginTop: '8px', fontSize: '12px', color: '#565869' }}>
-                Good things take a little time, almost there 🌼
+              <p style={{ marginTop: '8px', fontSize: '10px', color: '#565869', fontFamily: 'var(--font-press-start), monospace', letterSpacing: '0.02em', lineHeight: '1.8' }}>
+                Good things take a little time, almost there
               </p>
             </div>
           </div>
@@ -859,7 +874,7 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
             padding: '12px 16px',
             border: '1px solid #d1d5db',
             borderRadius: '12px',
-            fontSize: '14px',
+            fontSize: '11px',
             resize: 'none',
             background: '#ffffff',
             color: '#1f2937',
@@ -867,8 +882,9 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
             outline: 'none',
             transition: 'all 0.2s ease',
-            fontFamily: 'inherit',
-            lineHeight: '1.5',
+            fontFamily: 'var(--font-press-start), monospace',
+            lineHeight: '1.8',
+            letterSpacing: '0.02em',
           }}
           onFocus={(e) => {
             e.currentTarget.style.borderColor = '#8b5cf6';
@@ -899,8 +915,11 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
               color: isLoading || pendingStyleSelection ? '#9ca3af' : 'white',
               border: 'none',
               borderRadius: '12px',
-              fontSize: '14px',
+              fontSize: '11px',
               fontWeight: '600',
+              fontFamily: 'var(--font-press-start), monospace',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
               cursor: isLoading || pendingStyleSelection ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease',
               boxShadow: isLoading || pendingStyleSelection ? 'none' : '0 2px 8px rgba(239, 68, 68, 0.3)',
@@ -936,8 +955,11 @@ export default function CloudChat({ onClose, onMessagesUpdate }: CloudChatProps)
             border: 'none',
             borderRadius: '12px',
             cursor: input.trim() && !isLoading && !pendingStyleSelection ? 'pointer' : 'not-allowed',
-            fontSize: '14px',
+            fontSize: '11px',
             fontWeight: '600',
+            fontFamily: 'var(--font-press-start), monospace',
+            letterSpacing: '0.05em',
+            textTransform: 'uppercase',
             boxShadow: input.trim() && !isLoading && !pendingStyleSelection 
               ? '0 2px 8px rgba(139, 92, 246, 0.3)' 
               : 'none',
