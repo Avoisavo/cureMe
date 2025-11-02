@@ -546,7 +546,7 @@ export default function Catroom() {
         onClick={() => setIsDayMode(!isDayMode)}
         style={{
           position: "fixed",
-          top: "80px",
+          top: "120px",
           right: "20px",
           width: "60px",
           height: "60px",
