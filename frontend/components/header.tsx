@@ -134,6 +134,26 @@ export default function Header() {
 
         {/* Login/Logout Buttons - Right Side */}
         <div className="flex items-center gap-2 absolute right-0 pr-4 top-1/2 -translate-y-1/2">
+              {/* Subscribe Button */}
+              <Link
+                href="/subcription"
+                className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300 hover:scale-105"
+              >
+                <span className="text-lg">✨</span>
+                <span 
+                  className="font-bold"
+                  style={{
+                    fontFamily: 'var(--font-press-start), monospace',
+                    fontSize: '0.7rem',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    textShadow: '2px 2px 0px rgba(0, 0, 0, 0.2), 0 0 15px rgba(255, 255, 255, 0.6)',
+                  }}
+                >
+                  Subscribe
+                </span>
+              </Link>
+
               {!isLoggedIn ? (
                 <button
                   onClick={handleLogin}
