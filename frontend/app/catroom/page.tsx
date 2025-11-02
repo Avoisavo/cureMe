@@ -11,6 +11,13 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+interface SummaryData {
+  date: string;
+  datetime: string;
+  summary: string;
+  dayOfWeek: string;
+}
+
 export default function Catroom() {
   const [showInstruction, setShowInstruction] = useState(true);
   const [showCloud, setShowCloud] = useState(false);
@@ -19,31 +26,102 @@ export default function Catroom() {
   const [currentPage, setCurrentPage] = useState(0);
   const [bookOpened, setBookOpened] = useState(false);
   const [isDayMode, setIsDayMode] = useState(false);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // Fetch latest summary from MongoDB - runs immediately when component mounts
+  useEffect(() => {
+    const fetchSummary = async () => {
+      console.log("🔍 Fetching summary from MongoDB...");
+
+      try {
+        const response = await fetch(
+          "/api/chat-summaries?userId=default&limit=1"
+        );
+
+        console.log(
+          "📡 Response status:",
+          response.status,
+          response.statusText
+        );
+
+        // Try to parse response even if not ok
+        let data;
+        try {
+          data = await response.json();
+          console.log("📦 API Response:", data);
+        } catch (parseError) {
+          console.error("❌ Failed to parse response:", parseError);
+          setLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          console.error("❌ API Error:", data.error || "Unknown error");
+          console.error("Full error details:", data);
+          setLoading(false);
+          return;
+        }
+
+        if (data.success && data.summaries && data.summaries.length > 0) {
+          const latestSummary = data.summaries[0];
+          console.log("✅ Latest summary found:", latestSummary);
+
+          // Parse the date field (YYYY-MM-DD format) to get the day of week
+          // Use the date field, NOT datetime, as specified by user
+          const dateObj = new Date(latestSummary.date + "T00:00:00");
+          const dayOfWeek = dateObj.toLocaleDateString("en-US", {
+            weekday: "long",
+          });
+
+          const summaryInfo = {
+            date: latestSummary.date,
+            datetime: dateObj.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            summary: latestSummary.summary,
+            dayOfWeek: dayOfWeek,
+          };
+
+          console.log("📝 Setting summary data:", summaryInfo);
+          setSummaryData(summaryInfo);
+          setLoading(false);
+        } else {
+          console.log("⚠️ No summaries found in database");
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching summary:", error);
+        setLoading(false);
+      }
+    };
+
+    // Fetch immediately on component mount
+    fetchSummary();
+  }, []);
 
   // Page data
   const pages = [
     {
       image: "/first.png",
-      text: "This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences.",
+      text: loading
+        ? "Loading your summary..."
+        : summaryData
+        ? summaryData.summary
+        : "No summary available yet. Chat with the AI to create your first summary!",
+      date: summaryData?.datetime || "",
+      dayOfWeek: summaryData?.dayOfWeek || "",
     },
     {
       image: "/second.png",
       text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
+      date: "",
+      dayOfWeek: "",
     },
   ];
-
-  const handleNextPage = () => {
-    if (currentPage < pages.length - 1) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
 
   const handleBookClick = () => {
     if (!bookOpened) {
@@ -113,7 +191,8 @@ export default function Catroom() {
     <>
       <style jsx>{`
         @keyframes twinkle {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 1;
             transform: scale(1);
           }
@@ -132,12 +211,12 @@ export default function Catroom() {
           background: #f4f4f4;
           border-radius: 50%;
           box-shadow: 0 0 60px rgba(255, 255, 255, 0.8),
-                      0 0 100px rgba(255, 255, 255, 0.4);
+            0 0 100px rgba(255, 255, 255, 0.4);
           z-index: 0;
         }
 
         .moon::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 15px;
           right: 15px;
@@ -148,7 +227,7 @@ export default function Catroom() {
         }
 
         .moon::after {
-          content: '';
+          content: "";
           position: absolute;
           top: 40px;
           right: 30px;
@@ -164,11 +243,10 @@ export default function Catroom() {
           right: 15%;
           width: 120px;
           height: 120px;
-          background: radial-gradient(circle, #FFD700, #FFA500);
+          background: radial-gradient(circle, #ffd700, #ffa500);
           border-radius: 50%;
           box-shadow: 0 0 60px rgba(255, 215, 0, 0.8),
-                      0 0 100px rgba(255, 165, 0, 0.6),
-                      0 0 140px rgba(255, 215, 0, 0.4);
+            0 0 100px rgba(255, 165, 0, 0.6), 0 0 140px rgba(255, 215, 0, 0.4);
           z-index: 0;
           animation: rotateSun 60s linear infinite;
         }
@@ -184,7 +262,7 @@ export default function Catroom() {
 
         .sun::before,
         .sun::after {
-          content: '';
+          content: "";
           position: absolute;
           top: 50%;
           left: 50%;
@@ -205,7 +283,8 @@ export default function Catroom() {
         }
 
         @keyframes pulse {
-          0%, 100% {
+          0%,
+          100% {
             transform: translate(-50%, -50%) scale(1);
             opacity: 0.5;
           }
@@ -244,13 +323,17 @@ export default function Catroom() {
         }
 
         .shooting-star::before {
-          content: '';
+          content: "";
           position: absolute;
           top: 0;
           right: 0;
           height: 2px;
           width: 80px;
-          background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+          background: linear-gradient(
+            to left,
+            rgba(255, 255, 255, 0.9),
+            transparent
+          );
           border-radius: 50%;
         }
 
@@ -387,7 +470,7 @@ export default function Catroom() {
         }
       `}</style>
       <Header />
-      
+
       {/* Day/Night Toggle Button */}
       <button
         onClick={() => setIsDayMode(!isDayMode)}
@@ -399,8 +482,8 @@ export default function Catroom() {
           height: "60px",
           borderRadius: "50%",
           border: "3px solid rgba(255, 255, 255, 0.3)",
-          background: isDayMode 
-            ? "linear-gradient(135deg, #FFD700, #FFA500)" 
+          background: isDayMode
+            ? "linear-gradient(135deg, #FFD700, #FFA500)"
             : "linear-gradient(135deg, #1a1a2e, #0a0e27)",
           cursor: "pointer",
           zIndex: 1000,
@@ -429,7 +512,7 @@ export default function Catroom() {
           top: "50px",
           width: "100%",
           height: "100vh",
-          background: isDayMode 
+          background: isDayMode
             ? "linear-gradient(to bottom, #87CEEB, #E0F6FF, #FFFFFF)"
             : "linear-gradient(to bottom, #0a0e27, #1a1a2e, #16213e)",
           overflow: "hidden",
@@ -474,17 +557,17 @@ export default function Catroom() {
         <Instruction onClose={() => setShowInstruction(false)} />
       )}
       {showCloud && (
-        <Cloud 
+        <Cloud
           onClose={() => setShowCloud(false)}
-          left="45%"  // Move to the left (lower % = more left)
+          left="45%" // Move to the left (lower % = more left)
           // ===== HOW TO ADJUST CLOUD POSITION =====
           // Uncomment and modify these props to change position:
-          
+
           // top="20%"        // Distance from top (default: 20%)
           // bottom="auto"    // Distance from bottom (default: auto)
           // left="50%"       // Distance from left (default: 50% - centered)
           // right="auto"     // Distance from right (default: auto)
-          
+
           // EXAMPLES:
           // Top-left corner:     top="10%" left="10%"
           // Top-right corner:    top="10%" right="10%" left="auto"
@@ -572,6 +655,8 @@ export default function Catroom() {
                   <MangaBook3D
                     leftPageImage={pages[currentPage].image}
                     rightPageText={pages[currentPage].text}
+                    rightPageDate={pages[currentPage].date}
+                    rightPageDayOfWeek={pages[currentPage].dayOfWeek}
                     opened={bookOpened}
                     onBookClick={handleBookClick}
                     onLeftPageClick={handleLeftPageClick}
@@ -580,106 +665,6 @@ export default function Catroom() {
                 </group>
               </Suspense>
             </Canvas>
-          </div>
-
-          {/* Navigation buttons */}
-          <div
-            style={{
-              position: "fixed",
-              bottom: "40px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              gap: "20px",
-              zIndex: 1001,
-            }}
-          >
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage === 0}
-              style={{
-                padding: "12px 24px",
-                backgroundColor:
-                  currentPage === 0
-                    ? "rgba(200, 200, 200, 0.5)"
-                    : "rgba(255, 255, 255, 0.9)",
-                border: "2px solid rgba(0, 0, 0, 0.1)",
-                borderRadius: "25px",
-                cursor: currentPage === 0 ? "not-allowed" : "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
-                transition: "all 0.2s ease",
-                color: currentPage === 0 ? "#999" : "#333",
-              }}
-              onMouseEnter={(e) => {
-                if (currentPage !== 0) {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(255, 255, 255, 1)";
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentPage !== 0) {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(255, 255, 255, 0.9)";
-                  e.currentTarget.style.transform = "scale(1)";
-                }
-              }}
-            >
-              ← Previous
-            </button>
-
-            <div
-              style={{
-                padding: "12px 24px",
-                backgroundColor: "rgba(255, 255, 255, 0.9)",
-                border: "2px solid rgba(0, 0, 0, 0.1)",
-                borderRadius: "25px",
-                fontSize: "16px",
-                fontWeight: "600",
-                color: "#333",
-              }}
-            >
-              Page {currentPage + 1} / {pages.length}
-            </div>
-
-            <button
-              onClick={handleNextPage}
-              disabled={currentPage === pages.length - 1}
-              style={{
-                padding: "12px 24px",
-                backgroundColor:
-                  currentPage === pages.length - 1
-                    ? "rgba(200, 200, 200, 0.5)"
-                    : "rgba(255, 255, 255, 0.9)",
-                border: "2px solid rgba(0, 0, 0, 0.1)",
-                borderRadius: "25px",
-                cursor:
-                  currentPage === pages.length - 1 ? "not-allowed" : "pointer",
-                fontSize: "16px",
-                fontWeight: "600",
-                boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
-                transition: "all 0.2s ease",
-                color: currentPage === pages.length - 1 ? "#999" : "#333",
-              }}
-              onMouseEnter={(e) => {
-                if (currentPage !== pages.length - 1) {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(255, 255, 255, 1)";
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (currentPage !== pages.length - 1) {
-                  e.currentTarget.style.backgroundColor =
-                    "rgba(255, 255, 255, 0.9)";
-                  e.currentTarget.style.transform = "scale(1)";
-                }
-              }}
-            >
-              Next →
-            </button>
           </div>
 
           {/* Close button */}
