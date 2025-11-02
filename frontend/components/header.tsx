@@ -139,7 +139,7 @@ export default function Header() {
                 href="/subcription"
                 className="flex items-center gap-2 px-4 py-2 rounded-full font-medium bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/40 hover:shadow-xl hover:shadow-purple-500/50 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 transition-all duration-300 hover:scale-105"
               >
-                <span className="text-lg">✨</span>
+                <span className="text-lg"></span>
                 <span 
                   className="font-bold"
                   style={{

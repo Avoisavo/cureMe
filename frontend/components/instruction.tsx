@@ -99,7 +99,7 @@ export default function Instruction({ onClose }: InstructionProps) {
             {/* Message */}
             <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-6 border-2 border-pink-200/60 mb-6">
               <p className="text-base text-gray-700 text-center" style={{ lineHeight: '1.8' }}>
-                I am your comfort cat! You can talk to me, and bring me to walk around my room! 🐾
+                I am your comfort cat! You can talk to me, and bring me to walk around my room! 
               </p>
             </div>
 
@@ -109,7 +109,7 @@ export default function Instruction({ onClose }: InstructionProps) {
               className="w-full bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold py-4 px-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
               style={{ fontSize: '0.875rem', letterSpacing: '0.05em' }}
             >
-              Let's Get Started! 🎉
+              Let's Get Started! 
             </button>
           </div>
         </div>
