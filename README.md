@@ -1,5 +1,7 @@
 # PsyCatrist Time
 
+DeploymentLink: https://sendcatstomars.vercel.app/catroom
+
 ## Project Description
 Many individuals experiencing emotional or mental-health challenges hesitate to seek support due to social stigma. Meanwhile, expressing vulnerability seems to be a sign of weakness, leading them to hide their struggles rather than reach out for help. Many people stay silent because they are afraid of being judged. So, they avoid traditional counselling even when they need support. As a result, individuals across different ages and life stages often manage their emotional burdens in silence. Our solution provides a safe and private space for mental-health support. Hence, we use advanced AI models to understand users' emotions. The platform delivers guidance that is personalized to each individual. Users of all ages can freely express themselves and reflect on their feelings. They receive meaningful support without fear of judgment or exposure. This approach bridges the gap between silent struggles and compassionate care.
 
