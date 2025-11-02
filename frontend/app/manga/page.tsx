@@ -6,44 +6,83 @@ import { Canvas } from "@react-three/fiber";
 import { MangaBook3D } from "@/components/MangaBook3D";
 import Spline from "@splinetool/react-spline";
 
+interface SummaryData {
+  date: string;
+  datetime: string;
+  summary: string;
+  dayOfWeek: string;
+}
+
 export default function MangaPage() {
   const router = useRouter();
   const [splineLoaded, setSplineLoaded] = useState(false);
   const [bookOpened, setBookOpened] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch latest summary from MongoDB
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const response = await fetch(
+          "/api/chat-summaries?userId=default&limit=1"
+        );
+        const data = await response.json();
+
+        if (data.success && data.summaries && data.summaries.length > 0) {
+          const latestSummary = data.summaries[0];
+
+          // Parse the date field (YYYY-MM-DD format) to get the day of week
+          // Use the date field, NOT datetime, as specified by user
+          const dateObj = new Date(latestSummary.date + "T00:00:00");
+          const dayOfWeek = dateObj.toLocaleDateString("en-US", {
+            weekday: "long",
+          });
+
+          setSummaryData({
+            date: latestSummary.date,
+            datetime: dateObj.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+            summary: latestSummary.summary,
+            dayOfWeek: dayOfWeek,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching summary:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSummary();
+  }, []);
 
   // Page data
   const pages = [
     {
       image: "/first.png",
-      text: "This is a placeholder for the AI summary. Today was an interesting day filled with various activities and emotions. The AI will analyze your journal entries and provide insightful summaries here that capture the essence of your experiences.",
+      text: loading
+        ? "Loading your summary..."
+        : summaryData
+        ? summaryData.summary
+        : "No summary available yet. Chat with the AI to create your first summary!",
+      date: summaryData?.datetime || "",
+      dayOfWeek: summaryData?.dayOfWeek || "",
     },
     {
       image: "/second.png",
       text: "Another day, another adventure! This is the second page summary where we'll see different manga content and its corresponding AI-generated summary based on your journal entries.",
+      date: "",
+      dayOfWeek: "",
     },
   ];
 
   const handleClose = () => {
     router.back();
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < pages.length - 1) {
-      setCurrentPage(currentPage + 1);
-      // Keep book open, just flip the page with animation
-      setBookOpened(false);
-      setTimeout(() => setBookOpened(true), 50);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-      // Keep book open, just flip the page with animation
-      setBookOpened(false);
-      setTimeout(() => setBookOpened(true), 50);
-    }
   };
 
   // Add ESC key handler
@@ -136,6 +175,8 @@ export default function MangaPage() {
             <MangaBook3D
               leftPageImage={pages[currentPage].image}
               rightPageText={pages[currentPage].text}
+              rightPageDate={pages[currentPage].date}
+              rightPageDayOfWeek={pages[currentPage].dayOfWeek}
               opened={bookOpened}
               onBookClick={handleBookClick}
             />
@@ -165,108 +206,6 @@ export default function MangaPage() {
           </div>
         )}
       </div>
-
-      {/* Navigation buttons - only show when book is opened */}
-      {bookOpened && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "40px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "20px",
-            zIndex: 1001,
-          }}
-        >
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 0}
-            style={{
-              padding: "12px 24px",
-              backgroundColor:
-                currentPage === 0
-                  ? "rgba(200, 200, 200, 0.5)"
-                  : "rgba(255, 255, 255, 0.9)",
-              border: "2px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: "25px",
-              cursor: currentPage === 0 ? "not-allowed" : "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
-              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
-              transition: "all 0.2s ease",
-              color: currentPage === 0 ? "#999" : "#333",
-            }}
-            onMouseEnter={(e) => {
-              if (currentPage !== 0) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 255, 255, 1)";
-                e.currentTarget.style.transform = "scale(1.05)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentPage !== 0) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 255, 255, 0.9)";
-                e.currentTarget.style.transform = "scale(1)";
-              }
-            }}
-          >
-            ← Previous
-          </button>
-
-          <div
-            style={{
-              padding: "12px 24px",
-              backgroundColor: "rgba(255, 255, 255, 0.9)",
-              border: "2px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: "25px",
-              fontSize: "16px",
-              fontWeight: "600",
-              color: "#333",
-            }}
-          >
-            Page {currentPage + 1} / {pages.length}
-          </div>
-
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === pages.length - 1}
-            style={{
-              padding: "12px 24px",
-              backgroundColor:
-                currentPage === pages.length - 1
-                  ? "rgba(200, 200, 200, 0.5)"
-                  : "rgba(255, 255, 255, 0.9)",
-              border: "2px solid rgba(0, 0, 0, 0.1)",
-              borderRadius: "25px",
-              cursor:
-                currentPage === pages.length - 1 ? "not-allowed" : "pointer",
-              fontSize: "16px",
-              fontWeight: "600",
-              boxShadow: "0 2px 12px rgba(0, 0, 0, 0.15)",
-              transition: "all 0.2s ease",
-              color: currentPage === pages.length - 1 ? "#999" : "#333",
-            }}
-            onMouseEnter={(e) => {
-              if (currentPage !== pages.length - 1) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 255, 255, 1)";
-                e.currentTarget.style.transform = "scale(1.05)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentPage !== pages.length - 1) {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(255, 255, 255, 0.9)";
-                e.currentTarget.style.transform = "scale(1)";
-              }
-            }}
-          >
-            Next →
-          </button>
-        </div>
-      )}
 
       {/* Close button */}
       <button

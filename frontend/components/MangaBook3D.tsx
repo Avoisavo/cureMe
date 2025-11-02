@@ -207,6 +207,8 @@ const Page = ({
 interface MangaBook3DProps {
   leftPageImage: string;
   rightPageText: string;
+  rightPageDate?: string;
+  rightPageDayOfWeek?: string;
   opened: boolean;
   onBookClick?: () => void;
   onLeftPageClick?: () => void;
@@ -216,6 +218,8 @@ interface MangaBook3DProps {
 export const MangaBook3D = ({
   leftPageImage,
   rightPageText,
+  rightPageDate = "",
+  rightPageDayOfWeek = "",
   opened,
   onBookClick,
   onLeftPageClick,
@@ -245,6 +249,12 @@ export const MangaBook3D = ({
   const textCanvas = useMemo(() => {
     if (typeof window === "undefined") return null;
 
+    console.log("📖 MangaBook3D rendering with:", {
+      rightPageDate,
+      rightPageDayOfWeek,
+      rightPageText: rightPageText?.substring(0, 50) + "...",
+    });
+
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1365;
@@ -267,19 +277,30 @@ export const MangaBook3D = ({
       canvas.height - margin * 2
     );
 
-    // Title - adjusted for new margins
+    // Title - show date and day if available
+    const titleText = rightPageDate || "AI Summary";
     ctx.fillStyle = "#2c3e50";
-    ctx.font = "bold 44px 'Press Start 2P', 'Orbitron', 'VT323', monospace";
+    ctx.font = "bold 36px 'Press Start 2P', 'Orbitron', 'VT323', monospace";
     ctx.textAlign = "center";
     const titleX = leftMargin + (canvas.width - leftMargin - margin) / 2;
-    ctx.fillText("AI Summary", titleX, 150);
+
+    // If we have date and day, show both
+    if (rightPageDate && rightPageDayOfWeek) {
+      ctx.fillText(rightPageDate, titleX, 130);
+      ctx.font = "bold 32px 'Orbitron', 'VT323', monospace";
+      ctx.fillStyle = "#555";
+      ctx.fillText(rightPageDayOfWeek, titleX, 175);
+    } else {
+      ctx.fillText(titleText, titleX, 150);
+    }
 
     // Underline - adjusted for new margins
     ctx.strokeStyle = "#34495e";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(leftMargin + 80, 180);
-    ctx.lineTo(canvas.width - margin - 80, 180);
+    const underlineY = rightPageDate && rightPageDayOfWeek ? 200 : 180;
+    ctx.moveTo(leftMargin + 80, underlineY);
+    ctx.lineTo(canvas.width - margin - 80, underlineY);
     ctx.stroke();
 
     // Body text - adjusted for new margins
@@ -289,7 +310,7 @@ export const MangaBook3D = ({
 
     const words = rightPageText.split(" ");
     let line = "";
-    let y = 260;
+    let y = rightPageDate && rightPageDayOfWeek ? 280 : 260;
     const maxWidth = canvas.width - leftMargin - margin - 60;
     const lineHeight = 48;
 
@@ -312,7 +333,7 @@ export const MangaBook3D = ({
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = SRGBColorSpace;
     return texture;
-  }, [rightPageText]);
+  }, [rightPageText, rightPageDate, rightPageDayOfWeek]);
 
   return (
     <group
